@@ -3,6 +3,7 @@
 import React, { useState, ChangeEvent } from 'react';
 import { FiTrash2 } from 'react-icons/fi';
 import Sidebar from '../components/Sidebar'; // Adjust the path as needed based on your project structure
+import CustomDropdown from '../components/CustomDropdown'; // Import the custom dropdown component
 
 // Define interfaces for type safety
 interface ProfileData {
@@ -29,6 +30,18 @@ const initialRecipes: Recipe[] = [
   { id: 5, name: "Nama Resep", calories: 300 },
 ];
 
+// Dropdown options
+const genderOptions = [
+  { value: 'Laki-Laki', label: 'Laki-Laki' },
+  { value: 'Perempuan', label: 'Perempuan' }
+];
+
+const activityOptions = [
+  { value: 'Rendah', label: 'Rendah' },
+  { value: 'Sedang', label: 'Sedang' },
+  { value: 'Tinggi', label: 'Tinggi' }
+];
+
 const ProfilePage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('account');
   const [profileData, setProfileData] = useState<ProfileData>({
@@ -41,7 +54,7 @@ const ProfilePage: React.FC = () => {
   });
   const [recipes, setRecipes] = useState<Recipe[]>(initialRecipes);
 
-  const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement> | { target: { name: string; value: string } }) => {
     const { name, value } = e.target;
     setProfileData((prev) => ({
       ...prev,
@@ -56,7 +69,15 @@ const ProfilePage: React.FC = () => {
 
   const handleCancel = () => {
     console.log('Cancelling changes');
-    // Add cancel logic here
+    // Reset to initial state or fetch from server
+    setProfileData({
+      name: '',
+      age: '',
+      weight: '',
+      height: '',
+      gender: 'Laki-Laki',
+      activityLevel: 'Rendah',
+    });
   };
 
   const handleDeleteRecipe = (id: number) => {
@@ -115,7 +136,7 @@ const ProfilePage: React.FC = () => {
                 Kelola informasi akun Anda, seperti nama pengguna, usia,
                 berat, tinggi, dan detail pribadi lainnya
               </p>
-              <hr className="border-t-2 border-[#1FA98D] my-4" /> {/* Teal divider */}
+              <hr className="border-t-2 border-teal-400 my-4" /> {/* Teal divider */}
             </div>
 
             <div className="space-y-6">
@@ -176,38 +197,39 @@ const ProfilePage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-md font-medium text-gray-700 mb-2">
+                <label 
+                  id="gender-label" 
+                  className="block text-md font-medium text-gray-700 mb-2"
+                >
                   Jenis Kelamin
                 </label>
-                <select
-                  name="gender"
+                <CustomDropdown
+                  options={genderOptions}
                   value={profileData.gender}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-1 focus:ring-teal-400 focus:border-teal-400 outline-none transition-colors bg-white text-gray-800"
-                >
-                  <option value="Laki-Laki">Laki-Laki</option>
-                  <option value="Perempuan">Perempuan</option>
-                </select>
+                  placeholder="Pilih jenis kelamin"
+                  name="gender"
+                />
               </div>
 
               <div>
-                <label className="block text-md font-medium text-gray-700 mb-2">
+                <label 
+                  id="activityLevel-label" 
+                  className="block text-md font-medium text-gray-700 mb-2"
+                >
                   Tingkat Aktivitas
                 </label>
-                <select
-                  name="activityLevel"
+                <CustomDropdown
+                  options={activityOptions}
                   value={profileData.activityLevel}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-1 focus:ring-teal-400 focus:border-teal-400 outline-none transition-colors bg-white text-gray-800"
-                >
-                  <option value="Rendah">Rendah</option>
-                  <option value="Sedang">Sedang</option>
-                  <option value="Tinggi">Tinggi</option>
-                </select>
+                  placeholder="Pilih tingkat aktivitas"
+                  name="activityLevel"
+                />
               </div>
             </div>
 
-            <div className="flex gap-4 mt-8">
+            <div className="flex gap-4 mt-20">
               <button
                 onClick={handleSave}
                 className="px-8 py-3 bg-teal-500 text-white rounded-md hover:bg-teal-600 active:bg-teal-700 transition-colors font-medium"
@@ -235,7 +257,7 @@ const ProfilePage: React.FC = () => {
                 dikonsumsi, jumlah kalori per resep, dan total kalori hari ini.
                 Data akan direset otomatis setiap hari.
               </p>
-              <hr className="border-t-2 border-[#1FA98D] my-4" /> {/* Teal divider */}
+              <hr className="border-t-2 border-teal-400 my-4" /> {/* Teal divider */}
             </div>
 
             <div className="flex justify-between items-center mb-6">
@@ -256,29 +278,37 @@ const ProfilePage: React.FC = () => {
             </p>
 
             <div className="space-y-3">
-              {recipes.map((recipe) => (
-                <div
-                  key={recipe.id}
-                  className="p-4 border border-teal-500 text-white rounded-md shadow-sm hover:bg-[#A5DDD7]"
-                >
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <h3 className="text-lg text-gray-800 font-medium">{recipe.name}</h3>
-                      <p className="text-gray-800 text-md">{recipe.calories} kkal</p>
-                    </div>
-                    <button
-                      onClick={() => handleDeleteRecipe(recipe.id)}
-                      className="p-2 text-red-400 hover:bg-gray-100 hover:bg-opacity-10 rounded-md transition-colors"
-                      aria-label="Delete recipe"
-                    >
-                      <FiTrash2 className="w-5 h-5" />
-                    </button>
-                  </div>
+              {recipes.length === 0 ? (
+                <div className="text-center py-12 text-gray-500">
+                  <p className="text-lg mb-2">Belum ada resep yang dikonsumsi hari ini</p>
+                  <p className="text-sm">Mulai tambahkan resep untuk melacak kalori harian Anda</p>
                 </div>
-              ))}
+              ) : (
+                recipes.map((recipe) => (
+                  <div
+                    key={recipe.id}
+                    className="p-4 border border-teal-500 bg-white rounded-md shadow-sm hover:bg-[#A5DDD7] transition-colors"
+                  >
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <h3 className="text-lg text-gray-800 font-medium">{recipe.name}</h3>
+                        <p className="text-gray-600 text-md">{recipe.calories} kkal</p>
+                      </div>
+                      <button
+                        onClick={() => handleDeleteRecipe(recipe.id)}
+                        className="p-2 text-red-400 hover:bg-red-50 rounded-md transition-colors"
+                        aria-label="Delete recipe"
+                        title="Hapus resep"
+                      >
+                        <FiTrash2 className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
 
-            <div className="flex gap-4 mt-8">
+            <div className="flex gap-4 mt-20">
               <button
                 onClick={handleSave}
                 className="px-8 py-3 bg-teal-500 text-white rounded-md hover:bg-teal-600 transition-colors font-medium"

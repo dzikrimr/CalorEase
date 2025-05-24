@@ -23,6 +23,8 @@ const CategoryTabs: React.FC<CategoryTabsProps> = ({
 }) => {
   // Gunakan state lokal sebagai fallback jika onSearchChange tidak diberikan
   const [localSearchValue, setLocalSearchValue] = useState(controlledSearchValue);
+  // State untuk melacak apakah pencarian telah dilakukan
+  const [isSearchPerformed, setIsSearchPerformed] = useState(false);
 
   // Tentukan nilai yang digunakan untuk input (controlled atau lokal)
   const searchValue = onSearchChange ? controlledSearchValue : localSearchValue;
@@ -37,6 +39,14 @@ const CategoryTabs: React.FC<CategoryTabsProps> = ({
     }
   };
 
+  // Handler untuk tombol search
+  const handleSearchSubmit = () => {
+    if (onSearchSubmit) {
+      onSearchSubmit();
+      setIsSearchPerformed(true); // Tandai bahwa pencarian telah dilakukan
+    }
+  };
+
   // Handler untuk tombol remove
   const handleRemove = () => {
     if (onSearchChange) {
@@ -44,11 +54,16 @@ const CategoryTabs: React.FC<CategoryTabsProps> = ({
     } else {
       setLocalSearchValue(''); // Kosongkan input melalui state lokal
     }
+    if (onSearchSubmit) {
+      onSearchSubmit(); // Lakukan pencarian ulang untuk mengembalikan hasil default
+      setIsSearchPerformed(false); // Reset status pencarian
+    }
   };
 
   const handleSearchKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && onSearchSubmit) {
       onSearchSubmit();
+      setIsSearchPerformed(true); // Tandai bahwa pencarian telah dilakukan
     }
   };
 
@@ -83,11 +98,11 @@ const CategoryTabs: React.FC<CategoryTabsProps> = ({
               onChange={handleSearchChange}
               onKeyPress={handleSearchKeyPress}
               className={`w-full px-4 py-2 text-gray-700 bg-white focus:outline-none focus:bg-gray-50 ${
-                searchValue.length > 0 ? 'pr-10' : ''
+                isSearchPerformed ? 'pr-10' : ''
               }`}
             />
-            {/* Remove Button (muncul hanya jika searchValue tidak kosong) */}
-            {searchValue.length > 0 && (
+            {/* Remove Button (muncul hanya jika pencarian telah dilakukan) */}
+            {isSearchPerformed && (
               <button
                 onClick={handleRemove}
                 className="absolute right-3 top-1/2 transform -translate-y-1/2 w-6 h-6 bg-gray-200/50 rounded-full text-gray-700 hover:text-gray-900 transition-colors cursor-pointer flex items-center justify-center"
@@ -109,7 +124,7 @@ const CategoryTabs: React.FC<CategoryTabsProps> = ({
             )}
           </div>
           <button
-            onClick={onSearchSubmit}
+            onClick={handleSearchSubmit}
             className="px-4 py-2 bg-teal-500 text-white hover:bg-teal-600 transition-colors border-l border-[#0C4438]"
           >
             <svg

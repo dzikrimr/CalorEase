@@ -5,6 +5,7 @@ import { CloseCircleOutlined } from "@ant-design/icons";
 import Image from "next/image";
 import RecipeCard from "../components/RecipeCard";
 import Sidebar from "../components/Sidebar";
+import CalorieWaveTracker from "../components/CalorieWaveTracker";
 
 interface Recipe {
   title: string;
@@ -16,63 +17,39 @@ interface Recipe {
 const HomePage: React.FC = () => {
   const [searchText, setSearchText] = useState<string>("");
   const [inputText, setInputText] = useState<string>("");
-  const [targetCalories, setTargetCalories] = useState<number>(3000);
-  const [currentCalories, setCurrentCalories] = useState<number>(2900);
+  const [targetCalories, setTargetCalories] = useState<number>(2500);
+  const [currentCalories, setCurrentCalories] = useState<number>(1500);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [offset, setOffset] = useState<number>(0);
   const [totalPages, setTotalPages] = useState<number>(1);
-  const [recipeCount, setRecipeCount] = useState<number>(0); // State untuk animasi counting
   const recipesPerPage = 12;
-  const targetRecipeCount = 2850; // Target angka untuk animasi
-
-  // Efek untuk animasi counting yang smooth menggunakan requestAnimationFrame
-  useEffect(() => {
-    let start = 0;
-    const end = targetRecipeCount;
-    const duration = 1000; // Durasi animasi dalam milidetik (2 detik)
-    let startTime: number | null = null;
-
-    const animate = (timestamp: number) => {
-      if (!startTime) startTime = timestamp;
-      const progress = Math.min((timestamp - startTime) / duration, 1); // Progress dari 0 ke 1
-      const easedProgress = 1 - Math.pow(1 - progress, 3); // Ease-out cubic untuk animasi lebih halus
-      const currentCount = Math.round(easedProgress * end);
-
-      setRecipeCount(currentCount);
-
-      if (progress < 1) {
-        requestAnimationFrame(animate); // Lanjutkan animasi hingga selesai
-      }
-    };
-
-    const animationId = requestAnimationFrame(animate);
-
-    return () => cancelAnimationFrame(animationId); // Cleanup saat komponen unmount
-  }, []);
 
   useEffect(() => {
     const fetchRecipes = async () => {
       setLoading(true);
       setError(null);
-      const query = searchText || "";
-      console.log("Fetching recipes with searchText:", query, "offset:", offset);
-      console.log("Fetch URL:", `/api/recipes?query=${encodeURIComponent(query)}&offset=${offset}`);
+
       try {
-        const response = await fetch(`/api/recipes?query=${encodeURIComponent(query)}&offset=${offset}`);
+        const queryParams = new URLSearchParams({
+          query: searchText,
+          offset: offset.toString(),
+        });
+
+        const response = await fetch(`/api/recipes?${queryParams}`);
+
         if (!response.ok) {
-          throw new Error(`Failed to fetch recipes: ${response.status}`);
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Failed to fetch recipes");
         }
+
         const data = await response.json();
-        if (data.error) {
-          throw new Error(data.error);
-        }
         setRecipes(data.recipes);
         setTotalPages(Math.ceil(data.totalResults / recipesPerPage) || 1);
       } catch (err: any) {
-        setError(err.message || "Could not load recipes. Please try again later.");
-        console.error("Fetch error:", err);
+        setError(err.message);
+        console.error("Fetch error details:", err);
       } finally {
         setLoading(false);
       }
@@ -84,19 +61,23 @@ const HomePage: React.FC = () => {
   const handleSearch = () => {
     console.log("Search button clicked with value:", inputText);
     setSearchText(inputText);
-    setOffset(0); // Reset to first page on new search
+    setOffset(0);
   };
 
   const handleClearSearch = () => {
     console.log("Clear search clicked");
     setInputText("");
     setSearchText("");
-    setOffset(0); // Reset to first page
+    setOffset(0);
   };
 
   const handleFirstPage = () => setOffset(0);
-  const handlePrevPage = () => setOffset((prev) => Math.max(0, prev - recipesPerPage));
-  const handleNextPage = () => setOffset((prev) => Math.min((totalPages - 1) * recipesPerPage, prev + recipesPerPage));
+  const handlePrevPage = () =>
+    setOffset((prev) => Math.max(0, prev - recipesPerPage));
+  const handleNextPage = () =>
+    setOffset((prev) =>
+      Math.min((totalPages - 1) * recipesPerPage, prev + recipesPerPage)
+    );
   const handleLastPage = () => setOffset((totalPages - 1) * recipesPerPage);
 
   return (
@@ -121,11 +102,11 @@ const HomePage: React.FC = () => {
               className="absolute w-55 h-55 bg-[#1FA98D] opacity-50 rounded-full z-0"
               style={{ top: "-40px", right: "-40px" }}
             ></div>
-            <div className="relative text-white mb-2">Lebih Dari</div>
-            <div className="relative text-white text-4xl font-bold mb-2 transition-all duration-100 ease-out">
-              {recipeCount}+
+            <div className="relative text-white mb-2">More Than</div>
+            <div className="relative text-white text-4xl font-bold mb-2">
+              2850+
             </div>
-            <div className="relative text-white">Resep Sehat</div>
+            <div className="relative text-white">Healthy Recipe</div>
           </div>
           <div className="absolute inset-0 flex flex-col justify-center px-8 z-20">
             <h1 className="text-white text-3xl font-bold mb-1 text-center">
@@ -172,13 +153,21 @@ const HomePage: React.FC = () => {
                   placeholder="Input text here"
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}
-                  style={{ height: "45px", borderRadius: "8px", paddingRight: "80px" }}
+                  style={{
+                    height: "45px",
+                    borderRadius: "8px",
+                    paddingRight: "80px",
+                  }}
                 />
                 {(inputText || searchText) && (
                   <div className="absolute right-30 top-1/2 transform -translate-y-1/2 flex items-center z-10">
                     <CloseCircleOutlined
                       onClick={handleClearSearch}
-                      style={{ fontSize: "20px", color: "#aaa", cursor: "pointer" }}
+                      style={{
+                        fontSize: "20px",
+                        color: "#aaa",
+                        cursor: "pointer",
+                      }}
                     />
                   </div>
                 )}
@@ -209,37 +198,31 @@ const HomePage: React.FC = () => {
               </div>
             )}
           </div>
-          <div className="w-30 bg-teal-100 p-4 rounded-3xl mt-4 mb-4 flex flex-col">
+          <div className="w-30 bg-teal-100 p-6 rounded-3xl mt-4 mb-4 flex flex-col">
             <div className="flex-grow">
+              <div className="mt-6 mb-6">
+                <CalorieWaveTracker
+                  current={targetCalories}
+                  target={targetCalories}
+                  size={64}
+                  label="Calorie Target"
+                />
+              </div>
               <div className="mb-6">
-                <div className="text-center mb-6 mt-10">
-                  <div className="text-teal-800 text-sm">Target Kalori</div>
-                  <div className="bg-white rounded-full h-16 w-16 flex items-center justify-center mx-auto mt-2">
-                    <div className="font-bold text-teal-600">
-                      {targetCalories}
-                    </div>
-                  </div>
-                </div>
-                <div className="mb-6">
-                  <div className="text-center mb-2 text-teal-800 text-sm">
-                    Kalori Hari Ini
-                  </div>
-                  <div className="bg-white rounded-full h-16 w-16 flex items-center justify-center mx-auto mt-2">
-                    <div className="font-bold text-teal-600">
-                      {currentCalories}
-                    </div>
-                  </div>
-                </div>
-                <div className="mb-0">
-                  <div className="text-center mb-2 text-teal-800 text-sm">
-                    Sisa Kalori
-                  </div>
-                  <div className="bg-white rounded-full h-16 w-16 flex items-center justify-center mx-auto mt-2">
-                    <div className="font-bold text-teal-600">
-                      {targetCalories - currentCalories}
-                    </div>
-                  </div>
-                </div>
+                <CalorieWaveTracker
+                  current={currentCalories}
+                  target={targetCalories}
+                  size={64}
+                  label="Today's Calories"
+                />
+              </div>
+              <div className="mb-0">
+                <CalorieWaveTracker
+                  current={targetCalories - currentCalories}
+                  target={targetCalories}
+                  size={64}
+                  label="Calories Left"
+                />
               </div>
               <div className="mt-32">
                 <div className="flex flex-col items-center gap-4">
@@ -274,13 +257,16 @@ const HomePage: React.FC = () => {
                     />
                   </button>
                   <div className="text-gray-600 text-sm">
-                    Page {Math.floor(offset / recipesPerPage) + 1} of {totalPages}
+                    {Math.floor(offset / recipesPerPage) + 1} of{" "}
+                    {totalPages}
                   </div>
                   <button
                     onClick={handleNextPage}
                     disabled={offset >= (totalPages - 1) * recipesPerPage}
                     className={`w-10 h-10 flex items-center justify-center rounded-full border border-gray-200 p-0 disabled:opacity-50 ${
-                      offset >= (totalPages - 1) * recipesPerPage ? "" : "cursor-pointer hover:bg-[#A5DDD1]"
+                      offset >= (totalPages - 1) * recipesPerPage
+                        ? ""
+                        : "cursor-pointer hover:bg-[#A5DDD1]"
                     } transition-colors duration-200`}
                   >
                     <Image
@@ -295,7 +281,9 @@ const HomePage: React.FC = () => {
                     onClick={handleLastPage}
                     disabled={offset >= (totalPages - 1) * recipesPerPage}
                     className={`w-8 h-8 flex items-center justify-center rounded-full border border-gray-200 p-0 disabled:opacity-50 ${
-                      offset >= (totalPages - 1) * recipesPerPage ? "" : "cursor-pointer hover:bg-[#A5DDD1]"
+                      offset >= (totalPages - 1) * recipesPerPage
+                        ? ""
+                        : "cursor-pointer hover:bg-[#A5DDD1]"
                     } transition-colors duration-200`}
                   >
                     <Image

@@ -17,7 +17,7 @@ interface Product {
 }
 
 const Marketplace: React.FC = () => {
-  const [activeCategory, setActiveCategory] = useState("Semua");
+  const [activeCategory, setActiveCategory] = useState("All");
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [products, setProducts] = useState<Product[]>([]);
@@ -25,13 +25,12 @@ const Marketplace: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1);
   const itemsPerPage = 12;
 
-  const categories = ["Semua", "Sayuran", "Buah", "Daging", "Bumbu", "Lainnya"];
+  const categories = ["All", "Vegetable", "Fruit", "Meat", "Spices", "Others"];
 
   // Fetch products from API
   const fetchProducts = async (query = "", page = 1) => {
     setIsLoading(true);
     try {
-      // Add itemsPerPage to the API query
       const response = await fetch(
         `/api/marketplace?query=${encodeURIComponent(
           query
@@ -39,13 +38,12 @@ const Marketplace: React.FC = () => {
       );
       const data = await response.json();
 
-      console.log("Raw API Response:", data); // Debug log
+      console.log("Raw API Response:", data);
 
       if (data.shopping_results) {
         const formattedProducts = data.shopping_results.map(
           (item: any, index: number) => {
-            console.log(`Product ${index}:`, item); // Debug log untuk setiap produk
-            
+            console.log(`Product ${index}:`, item);
             const product = {
               id: item.product_id || `prod-${index}-${Date.now()}`,
               title: item.title,
@@ -53,16 +51,15 @@ const Marketplace: React.FC = () => {
               rating: item.rating || 5.0,
               price: item.price,
               source: item.source,
-              link: item.link || item.product_link || item.url || "", // Coba berbagai kemungkinan field link
+              link: item.link || item.product_link || item.url || "",
               category: determineCategory(item.title),
             };
-            
-            console.log("Formatted product:", product); // Debug log produk yang sudah diformat
+            console.log("Formatted product:", product);
             return product;
           }
         );
 
-        console.log("All formatted products:", formattedProducts); // Debug log semua produk
+        console.log("All formatted products:", formattedProducts);
         setProducts(formattedProducts);
         setTotalPages(Math.ceil(formattedProducts.length / itemsPerPage));
       }
@@ -77,14 +74,14 @@ const Marketplace: React.FC = () => {
   const determineCategory = (title: string): string => {
     const lowerTitle = title.toLowerCase();
     if (lowerTitle.includes("sayur") || lowerTitle.includes("vegetable"))
-      return "Sayuran";
+      return "Vegetable";
     if (lowerTitle.includes("buah") || lowerTitle.includes("fruit"))
-      return "Buah";
+      return "Fruit";
     if (lowerTitle.includes("daging") || lowerTitle.includes("meat"))
-      return "Daging";
+      return "Meat";
     if (lowerTitle.includes("bumbu") || lowerTitle.includes("spice"))
-      return "Bumbu";
-    return "Lainnya";
+      return "Spices";
+    return "Others";
   };
 
   // Initial fetch
@@ -92,14 +89,14 @@ const Marketplace: React.FC = () => {
     fetchProducts();
   }, []);
 
-  // Fetch when search term or page changes
+  // Fetch when page changes
   useEffect(() => {
     fetchProducts(searchTerm, currentPage);
-  }, [searchTerm, currentPage]);
+  }, [currentPage]); // Removed searchTerm from dependencies
 
   // Filter products based on selected category and ensure max 12 items
   const filtered =
-    activeCategory === "Semua"
+    activeCategory === "All"
       ? products
       : products.filter((product) => product.category === activeCategory);
 
@@ -115,11 +112,11 @@ const Marketplace: React.FC = () => {
 
   const handleSearchChange = (value: string) => {
     setSearchTerm(value);
-    setCurrentPage(1);
   };
 
   const handleSearchSubmit = () => {
-    fetchProducts(searchTerm, 1);
+    setCurrentPage(1); // Reset to first page on new search
+    fetchProducts(searchTerm, 1); // Trigger search with current searchTerm
   };
 
   const handlePageChange = (page: number) => {

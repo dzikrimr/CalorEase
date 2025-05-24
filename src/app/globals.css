@@ -26,3 +26,9 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans);
 }
+
+.ant-input:focus,
+.ant-input-focused {
+  border-color: #1FA98D !important;
+  box-shadow: 0 0 0 2px rgba(31, 169, 141, 0.2) !important;
+}

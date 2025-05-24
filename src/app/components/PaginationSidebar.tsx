@@ -13,13 +13,15 @@ const PaginationSidebar: React.FC<PaginationSidebarProps> = ({
   onPageChange
 }) => {
   return (
-    <div className="w-32 bg-teal-100 p-4 rounded-3xl mt-4 mb-4 flex flex-col">
+    <div className="w-30 bg-teal-100 p-4 rounded-2xl mt-50 mb-50 flex flex-col">
       <div className="flex-grow flex items-center justify-center">
         {/* Pagination Controls Section */}
         <div className="flex flex-col items-center gap-4">
           {/* First Page Button */}
           <button 
-            className="w-8 h-8 flex items-center justify-center rounded-full border disabled:opacity-50"
+            className={`w-8 h-8 flex items-center justify-center rounded-full border border-gray-200 p-0 disabled:opacity-50 ${
+              currentPage === 1 ? "" : "cursor-pointer hover:bg-[#A5DDD1]"
+            } transition-colors duration-200`}
             onClick={() => onPageChange(1)}
             disabled={currentPage === 1}
           >
@@ -33,7 +35,9 @@ const PaginationSidebar: React.FC<PaginationSidebarProps> = ({
 
           {/* Previous Page Button */}
           <button 
-            className="w-10 h-10 flex items-center justify-center rounded-full disabled:opacity-50"
+            className={`w-10 h-10 flex items-center justify-center rounded-full border border-gray-200 p-0 disabled:opacity-50 ${
+              currentPage === 1 ? "" : "cursor-pointer hover:bg-[#A5DDD1]"
+            } transition-colors duration-200`}
             onClick={() => onPageChange(currentPage - 1)}
             disabled={currentPage === 1}
           >
@@ -52,7 +56,9 @@ const PaginationSidebar: React.FC<PaginationSidebarProps> = ({
 
           {/* Next Page Button */}
           <button 
-            className="w-10 h-10 flex items-center justify-center rounded-full disabled:opacity-50"
+            className={`w-10 h-10 flex items-center justify-center rounded-full border border-gray-200 p-0 disabled:opacity-50 ${
+              currentPage === totalPages ? "" : "cursor-pointer hover:bg-[#A5DDD1]"
+            } transition-colors duration-200`}
             onClick={() => onPageChange(currentPage + 1)}
             disabled={currentPage === totalPages}
           >
@@ -66,7 +72,9 @@ const PaginationSidebar: React.FC<PaginationSidebarProps> = ({
 
           {/* Last Page Button */}
           <button 
-            className="w-8 h-8 flex items-center justify-center rounded-full disabled:opacity-50"
+            className={`w-8 h-8 flex items-center justify-center rounded-full border border-gray-200 p-0 disabled:opacity-50 ${
+              currentPage === totalPages ? "" : "cursor-pointer hover:bg-[#A5DDD1]"
+            } transition-colors duration-200`}
             onClick={() => onPageChange(totalPages)}
             disabled={currentPage === totalPages}
           >

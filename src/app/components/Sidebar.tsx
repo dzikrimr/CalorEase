@@ -31,7 +31,7 @@ export const navigation = [
   },
   {
     id: 5,
-    title: 'Profil',
+    title: 'Profile',
     link: '/profil',
     icon: '/icons/user_ic.png',
   },

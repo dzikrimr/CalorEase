@@ -30,7 +30,7 @@ const RegisterPage: React.FC = () => {
     setIsSubmitting(true);
     try {
       await createUserWithEmailAndPassword(auth, email, password);
-      router.push('/dashboard');
+      router.push('/profile-setup'); // Redirect to profile-setup after registration
     } catch (err: any) {
       setError(err.message || 'Pendaftaran gagal. Email mungkin sudah digunakan.');
       setIsSubmitting(false);
@@ -45,7 +45,7 @@ const RegisterPage: React.FC = () => {
 
     try {
       await signInWithPopup(auth, provider);
-      router.push('/dashboard');
+      router.push('/profile-setup'); // Redirect to profile-setup after Google sign-up
     } catch (err: any) {
       setError(err.message || 'Pendaftaran dengan Google gagal.');
       setIsSubmitting(false);

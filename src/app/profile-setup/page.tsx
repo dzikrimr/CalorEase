@@ -1,6 +1,9 @@
 "use client";
 
 import React, { useState, FormEvent } from 'react';
+import { useRouter } from 'next/navigation';
+import { auth, db } from '../lib/firebase';
+import { doc, setDoc } from 'firebase/firestore';
 
 interface FormData {
   nama: string;
@@ -12,16 +15,18 @@ interface FormData {
 }
 
 const ProfileSetup: React.FC = () => {
+  const router = useRouter();
   const [nama, setNama] = useState('');
-  const [umur, setUmur] = useState<number>(25);
-  const [tinggi, setTinggi] = useState<number>(170);
-  const [berat, setBerat] = useState<number>(65);
+  const [umur, setUmur] = useState<number>(0);
+  const [tinggi, setTinggi] = useState<number>(0);
+  const [berat, setBerat] = useState<number>(0);
   const [jenisKelamin, setJenisKelamin] = useState<'pria' | 'wanita' | ''>('');
   const [aktivitas, setAktivitas] = useState<'rendah' | 'sedang' | 'tinggi' | 'sangat_tinggi' | ''>('');
   const [calories, setCalories] = useState<number>(0);
   const [bmr, setBMR] = useState<number>(0);
   const [loading, setLoading] = useState(false);
   const [showResult, setShowResult] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Calculate BMR
   const calculateBMR = (gender: 'pria' | 'wanita', weight: number, height: number, age: number): number => {
@@ -48,9 +53,15 @@ const ProfileSetup: React.FC = () => {
     e.preventDefault();
     setLoading(true);
     setShowResult(false);
+    setError(null);
 
-    // Simulate processing time
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    // Check if user is authenticated
+    const user = auth.currentUser;
+    if (!user) {
+      setError('User tidak ditemukan. Silakan login kembali.');
+      setLoading(false);
+      return;
+    }
 
     const data: FormData = {
       nama,
@@ -62,25 +73,57 @@ const ProfileSetup: React.FC = () => {
     };
 
     if (!data.jenisKelamin || !data.aktivitas) {
+      setError('Harap lengkapi semua kolom yang diperlukan.');
       setLoading(false);
-      return; // Prevent calculation if required fields are missing
+      return;
     }
 
-    const calculatedBMR = calculateBMR(data.jenisKelamin, data.berat, data.tinggi, data.umur);
-    const dailyCalories = calculateDailyCalories(calculatedBMR, data.aktivitas);
+    try {
+      const calculatedBMR = calculateBMR(data.jenisKelamin, data.berat, data.tinggi, data.umur);
+      const dailyCalories = calculateDailyCalories(calculatedBMR, data.aktivitas);
 
-    setCalories(dailyCalories);
-    setBMR(Math.round(calculatedBMR));
-    setShowResult(true);
-    setLoading(false);
+      // Prepare data to save to Firestore
+      const userData = {
+        nama: data.nama,
+        umur: data.umur,
+        tinggi: data.tinggi,
+        berat: data.berat,
+        jenisKelamin: data.jenisKelamin,
+        aktivitas: data.aktivitas,
+        bmr: Math.round(calculatedBMR),
+        dailyCalories: dailyCalories,
+        createdAt: new Date().toISOString(),
+      };
+
+      // Save to Firestore under 'users' collection with user's UID as document ID
+      await setDoc(doc(db, 'users', user.uid), userData);
+
+      setCalories(dailyCalories);
+      setBMR(Math.round(calculatedBMR));
+      setShowResult(true);
+    } catch (err: any) {
+      setError(err.message || 'Gagal menyimpan data ke database.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle navigation to dashboard
+  const handleGoToDashboard = () => {
+    router.push('/dashboard');
   };
 
   // Update step indicator
-  const totalFields = 5; // nama, umur, jenisKelamin, tinggi, berat, aktivitas
-  const filledFields = [nama, umur.toString(), jenisKelamin, tinggi.toString(), berat.toString(), aktivitas].filter(
-    (value) => value !== ''
-  ).length;
-  const activeSteps = Math.ceil((filledFields / totalFields) * 5);
+  const totalFields = 6; // nama, umur, jenisKelamin, tinggi, berat, aktivitas
+  const filledFields = [
+    nama !== '' ? 1 : 0,
+    umur > 0 ? 1 : 0,
+    jenisKelamin !== '' ? 1 : 0,
+    tinggi > 0 ? 1 : 0,
+    berat > 0 ? 1 : 0,
+    aktivitas !== '' ? 1 : 0,
+  ].reduce((sum, value) => sum + value, 0);
+  const activeSteps = Math.ceil((filledFields / totalFields) * 6);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-[var(--primary-50)] via-[var(--primary-100)] to-[var(--primary-200)] p-4 relative overflow-hidden">
@@ -114,157 +157,177 @@ const ProfileSetup: React.FC = () => {
           </div>
         </div>
 
-        {/* Form Section */}
+        {/* Form or Result Section */}
         <div className="bg-white rounded-3xl p-8 shadow-lg border border-gray-100">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-[var(--primary-800)] mb-2">Setup Profil</h2>
-            <p className="text-gray-600 text-sm">Isi data diri Anda untuk mendapatkan hasil yang akurat</p>
-          </div>
-
-          <div className="flex justify-center gap-2 mb-8">
-            {[...Array(5)].map((_, index) => (
-              <div
-                key={index}
-                className={`w-8 h-1 rounded-sm transition-all duration-300 ${
-                  index < activeSteps ? 'bg-[var(--primary-500)]' : 'bg-gray-200'
-                }`}
-              />
-            ))}
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label htmlFor="nama" className="block mb-2 text-sm font-semibold text-[var(--primary-800)]">
-                Nama Lengkap
-              </label>
-              <input
-                type="text"
-                id="nama"
-                value={nama}
-                onChange={(e) => setNama(e.target.value)}
-                required
-                placeholder="Masukkan nama lengkap"
-                className="w-full p-4 border-2 border-gray-200 rounded-xl text-[var(--primary-800)] focus:border-[var(--primary-400)] focus:ring-2 focus:ring-[var(--primary-400)]/20 focus:outline-none"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-6">
-              <div>
-                <label htmlFor="umur" className="block mb-2 text-sm font-semibold text-[var(--primary-800)]">
-                  Umur
-                </label>
-                <input
-                  type="number"
-                  id="umur"
-                  value={umur}
-                  onChange={(e) => setUmur(parseInt(e.target.value) || 0)}
-                  required
-                  min="15"
-                  max="100"
-                  placeholder="25"
-                  className="w-full p-4 border-2 border-gray-200 rounded-xl text-[var(--primary-800)] focus:border-[var(--primary-400)] focus:ring-2 focus:ring-[var(--primary-400)]/20 focus:outline-none"
-                />
+          {!showResult ? (
+            <>
+              <div className="text-center mb-8">
+                <h2 className="text-2xl font-bold text-[var(--primary-800)] mb-2">Setup Profil</h2>
+                <p className="text-gray-600 text-sm">Isi data diri Anda untuk mendapatkan hasil yang akurat</p>
               </div>
-              <div>
-                <label htmlFor="jenisKelamin" className="block mb-2 text-sm font-semibold text-[var(--primary-800)]">
-                  Jenis Kelamin
-                </label>
-                <select
-                  id="jenisKelamin"
-                  value={jenisKelamin}
-                  onChange={(e) => setJenisKelamin(e.target.value as 'pria' | 'wanita' | '')}
-                  required
-                  className="w-full p-4 border-2 border-gray-200 rounded-xl text-[var(--primary-800)] focus:border-[var(--primary-400)] focus:ring-2 focus:ring-[var(--primary-400)]/20 focus:outline-none"
-                >
-                  <option value="">Pilih jenis kelamin</option>
-                  <option value="pria">Pria</option>
-                  <option value="wanita">Wanita</option>
-                </select>
-              </div>
-            </div>
 
-            <div className="grid grid-cols-2 gap-6">
-              <div>
-                <label htmlFor="tinggi" className="block mb-2 text-sm font-semibold text-[var(--primary-800)]">
-                  Tinggi Badan (cm)
-                </label>
-                <input
-                  type="number"
-                  id="tinggi"
-                  value={tinggi}
-                  onChange={(e) => setTinggi(parseInt(e.target.value) || 0)}
-                  required
-                  min="100"
-                  max="250"
-                  placeholder="170"
-                  className="w-full p-4 border-2 border-gray-200 rounded-xl text-[var(--primary-800)] focus:border-[var(--primary-400)] focus:ring-2 focus:ring-[var(--primary-400)]/20 focus:outline-none"
-                />
-              </div>
-              <div>
-                <label htmlFor="berat" className="block mb-2 text-sm font-semibold text-[var(--primary-800)]">
-                  Berat Badan (kg)
-                </label>
-                <input
-                  type="number"
-                  id="berat"
-                  value={berat}
-                  onChange={(e) => setBerat(parseFloat(e.target.value) || 0)}
-                  required
-                  min="30"
-                  max="200"
-                  step="0.1"
-                  placeholder="65"
-                  className="w-full p-4 border-2 border-gray-200 rounded-xl text-[var(--primary-800)] focus:border-[var(--primary-400)] focus:ring-2 focus:ring-[var(--primary-400)]/20 focus:outline-none"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="aktivitas" className="block mb-2 text-sm font-semibold text-[var(--primary-800)]">
-                Tingkat Aktivitas
-              </label>
-              <select
-                id="aktivitas"
-                value={aktivitas}
-                onChange={(e) => setAktivitas(e.target.value as 'rendah' | 'sedang' | 'tinggi' | 'sangat_tinggi' | '')}
-                required
-                className="w-full p-4 border-2 border-gray-200 rounded-xl text-[var(--primary-800)] focus:border-[var(--primary-400)] focus:ring-2 focus:ring-[var(--primary-400)]/20 focus:outline-none"
-              >
-                <option value="">Pilih tingkat aktivitas</option>
-                <option value="rendah">Rendah - Jarang berolahraga, kerja kantoran</option>
-                <option value="sedang">Sedang - Olahraga ringan 1-3x/minggu</option>
-                <option value="tinggi">Tinggi - Olahraga intensif 4-6x/minggu</option>
-                <option value="sangat_tinggi">Sangat Tinggi - Olahraga setiap hari atau 2x/hari</option>
-              </select>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className={`w-full p-4 bg-[var(--primary-500)] text-white rounded-xl font-semibold text-lg transition-all duration-200 ${
-                loading ? 'opacity-60 cursor-not-allowed' : 'hover:bg-[var(--primary-600)] hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0'
-              } flex items-center justify-center`}
-            >
-              {loading && (
-                <svg className="animate-spin h-5 w-5 mr-2 text-white" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
+              {error && (
+                <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-2xl text-sm text-center">
+                  {error}
+                </div>
               )}
-              {loading ? 'Menghitung...' : 'Hitung Kalori Harian Saya'}
-            </button>
-          </form>
 
-          <div className={`mt-6 ${showResult ? 'animate-slideInUp block' : 'hidden'}`}>
-            <div className="bg-gradient-to-br from-[var(--primary-50)] to-[var(--primary-100)] border-2 border-[var(--primary-200)] rounded-2xl p-6 text-center">
-              <h3 className="text-xl font-semibold text-[var(--primary-800)] mb-3">Kebutuhan Kalori Harian Anda</h3>
-              <div className="text-4xl md:text-5xl font-extrabold text-[var(--primary-600)] mb-3">{calories.toLocaleString()}</div>
-              <div className="text-lg text-[var(--primary-500)] font-medium">kalori per hari</div>
-              <div className="bg-white p-4 rounded-xl mt-4 text-[var(--primary-700)]">
-                <strong>BMR (Basal Metabolic Rate):</strong> <span>{bmr.toLocaleString()}</span> kalori
+              <div className="flex justify-center gap-2 mb-8">
+                {[...Array(6)].map((_, index) => (
+                  <div
+                    key={index}
+                    className={`w-8 h-1 rounded-sm transition-all duration-300 ${
+                      index < activeSteps ? 'bg-[var(--primary-500)]' : 'bg-gray-200'
+                    }`}
+                  />
+                ))}
               </div>
+
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div>
+                  <label htmlFor="nama" className="block mb-2 text-sm font-semibold text-[var(--primary-800)]">
+                    Nama Lengkap
+                  </label>
+                  <input
+                    type="text"
+                    id="nama"
+                    value={nama}
+                    onChange={(e) => setNama(e.target.value)}
+                    required
+                    placeholder="Masukkan nama lengkap"
+                    className="w-full p-4 border-2 border-gray-200 rounded-xl text-[var(--primary-800)] focus:border-[var(--primary-400)] focus:ring-2 focus:ring-[var(--primary-400)]/20 focus:outline-none"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-6">
+                  <div>
+                    <label htmlFor="umur" className="block mb-2 text-sm font-semibold text-[var(--primary-800)]">
+                      Umur
+                    </label>
+                    <input
+                      type="number"
+                      id="umur"
+                      value={umur}
+                      onChange={(e) => setUmur(parseInt(e.target.value) || 0)}
+                      required
+                      min="15"
+                      max="100"
+                      placeholder="25"
+                      className="w-full p-4 border-2 border-gray-200 rounded-xl text-[var(--primary-800)] focus:border-[var(--primary-400)] focus:ring-2 focus:ring-[var(--primary-400)]/20 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="jenisKelamin" className="block mb-2 text-sm font-semibold text-[var(--primary-800)]">
+                      Jenis Kelamin
+                    </label>
+                    <select
+                      id="jenisKelamin"
+                      value={jenisKelamin}
+                      onChange={(e) => setJenisKelamin(e.target.value as 'pria' | 'wanita' | '')}
+                      required
+                      className="w-full p-4 border-2 border-gray-200 rounded-xl text-[var(--primary-800)] focus:border-[var(--primary-400)] focus:ring-2 focus:ring-[var(--primary-400)]/20 focus:outline-none"
+                    >
+                      <option value="">Pilih jenis kelamin</option>
+                      <option value="pria">Pria</option>
+                      <option value="wanita">Wanita</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-6">
+                  <div>
+                    <label htmlFor="tinggi" className="block mb-2 text-sm font-semibold text-[var(--primary-800)]">
+                      Tinggi Badan (cm)
+                    </label>
+                    <input
+                      type="number"
+                      id="tinggi"
+                      value={tinggi}
+                      onChange={(e) => setTinggi(parseInt(e.target.value) || 0)}
+                      required
+                      min="100"
+                      max="250"
+                      placeholder="170"
+                      className="w-full p-4 border-2 border-gray-200 rounded-xl text-[var(--primary-800)] focus:border-[var(--primary-400)] focus:ring-2 focus:ring-[var(--primary-400)]/20 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="berat" className="block mb-2 text-sm font-semibold text-[var(--primary-800)]">
+                      Berat Badan (kg)
+                    </label>
+                    <input
+                      type="number"
+                      id="berat"
+                      value={berat}
+                      onChange={(e) => setBerat(parseFloat(e.target.value) || 0)}
+                      required
+                      min="30"
+                      max="200"
+                      step="0.1"
+                      placeholder="65"
+                      className="w-full p-4 border-2 border-gray-200 rounded-xl text-[var(--primary-800)] focus:border-[var(--primary-400)] focus:ring-2 focus:ring-[var(--primary-400)]/20 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="aktivitas" className="block mb-2 text-sm font-semibold text-[var(--primary-800)]">
+                    Tingkat Aktivitas
+                  </label>
+                  <select
+                    id="aktivitas"
+                    value={aktivitas}
+                    onChange={(e) => setAktivitas(e.target.value as 'rendah' | 'sedang' | 'tinggi' | 'sangat_tinggi' | '')}
+                    required
+                    className="w-full p-4 border-2 border-gray-200 rounded-xl text-[var(--primary-800)] focus:border-[var(--primary-400)] focus:ring-2 focus:ring-[var(--primary-400)]/20 focus:outline-none"
+                  >
+                    <option value="">Pilih tingkat aktivitas</option>
+                    <option value="rendah">Rendah - Jarang berolahraga, kerja kantoran</option>
+                    <option value="sedang">Sedang - Olahraga ringan 1-3x/minggu</option>
+                    <option value="tinggi">Tinggi - Olahraga intensif 4-6x/minggu</option>
+                    <option value="sangat_tinggi">Sangat Tinggi - Olahraga setiap hari atau 2x/hari</option>
+                  </select>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className={`w-full p-4 bg-[var(--primary-500)] text-white rounded-xl font-semibold text-lg transition-all duration-200 ${
+                    loading ? 'opacity-60 cursor-not-allowed' : 'hover:bg-[var(--primary-600)] hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0'
+                  } flex items-center justify-center`}
+                >
+                  {loading && (
+                    <svg className="animate-spin h-5 w-5 mr-2 text-white" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                  )}
+                  {loading ? 'Menghitung...' : 'Hitung Kalori Harian Saya'}
+                </button>
+              </form>
+            </>
+          ) : (
+            <div className="animate-slideInUp">
+              <div className="text-center mb-8">
+                <h2 className="text-2xl font-bold text-[var(--primary-800)] mb-2">Hasil Perhitungan</h2>
+                <p className="text-gray-600 text-sm">Berikut adalah kebutuhan kalori harian Anda</p>
+              </div>
+              <div className="bg-gradient-to-br from-[var(--primary-50)] to-[var(--primary-100)] border-2 border-[var(--primary-200)] rounded-2xl p-6 text-center">
+                <h3 className="text-xl font-semibold text-[var(--primary-800)] mb-3">Kebutuhan Kalori Harian Anda</h3>
+                <div className="text-4xl md:text-5xl font-extrabold text-[var(--primary-600)] mb-3">{calories.toLocaleString()}</div>
+                <div className="text-lg text-[var(--primary-500)] font-medium">kalori per hari</div>
+                <div className="bg-white p-4 rounded-xl mt-4 text-[var(--primary-700)]">
+                  <strong>BMR (Basal Metabolic Rate):</strong> <span>{bmr.toLocaleString()}</span> kalori
+                </div>
+              </div>
+              <button
+                onClick={handleGoToDashboard}
+                className="w-full p-4 bg-[var(--primary-500)] text-white rounded-xl font-semibold text-lg transition-all duration-200 hover:bg-[var(--primary-600)] hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center mt-6"
+              >
+                Lanjutkan ke Dashboard
+              </button>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React from "react";
 import Image from "next/image";
+import { useFavorites } from "../context/FavoritesContext";
 
 interface RecipeCardProps {
   title: string;
@@ -14,7 +15,9 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
   categories,
   image,
 }) => {
-  const [isLiked, setIsLiked] = useState<boolean>(false);
+  const { addToFavorites, removeFromFavorites, isFavorite, getFavoriteByTitle } = useFavorites();
+  const isLiked = isFavorite(title);
+
   // Limit categories to 2 and add "..." if more
   const maxCategories = 2;
   const displayedCategories = categories.slice(0, maxCategories);
@@ -31,8 +34,24 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
 
   const cleanDescription = sanitizeDescription(description);
 
-  const handleLikeClick = () => {
-    setIsLiked((prev) => !prev);
+  const handleLikeClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card click event if you have one
+    
+    if (isLiked) {
+      // Remove from favorites
+      const favoriteRecipe = getFavoriteByTitle(title);
+      if (favoriteRecipe) {
+        removeFromFavorites(favoriteRecipe.id);
+      }
+    } else {
+      // Add to favorites
+      addToFavorites({
+        title,
+        description: cleanDescription,
+        categories,
+        image: image || "/recipe-image.jpg",
+      });
+    }
   };
 
   return (
@@ -45,8 +64,11 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
           className="object-cover"
         />
         <button
-          className="absolute top-2 right-2 bg-white p-2 rounded-full shadow-md hover:scale-110 transition-transform duration-200 cursor-pointer"
+          className={`absolute top-2 right-2 bg-white p-2 rounded-full shadow-md hover:scale-110 transition-all duration-200 cursor-pointer ${
+            isLiked ? 'bg-red-50 shadow-red-200' : ''
+          }`}
           onClick={handleLikeClick}
+          title={isLiked ? "Remove from favorites" : "Add to favorites"}
         >
           <Image
             src={isLiked ? "/icons/love-filled.png" : "/icons/love.png"}

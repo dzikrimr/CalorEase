@@ -3,6 +3,7 @@
 import { usePathname } from 'next/navigation';
 import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import Chatbot from './Chatbot'; // Adjust path based on your component location
 
 export const navigation = [
   {
@@ -26,8 +27,9 @@ export const navigation = [
   {
     id: 4,
     title: 'Chatbot',
-    link: '/chatbot',
+    link: '#', // Changed to # since it will trigger modal
     icon: '/icons/chat_ic.png',
+    action: 'chatbot', // Added action identifier
   },
   {
     id: 5,
@@ -40,6 +42,8 @@ export const navigation = [
 const Sidebar: React.FC = () => {
   const pathname = usePathname();
   const [activeId, setActiveId] = useState<number | null>(null);
+  const [isChatbotOpen, setIsChatbotOpen] = useState(false);
+  const [hasNotification, setHasNotification] = useState(true);
   const prevPathRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -54,78 +58,121 @@ const Sidebar: React.FC = () => {
     return pathname === path;
   };
 
+  const handleNavClick = (item: typeof navigation[0], e: React.MouseEvent) => {
+    if (item.action === 'chatbot') {
+      e.preventDefault();
+      setIsChatbotOpen(true);
+      setHasNotification(false); // Remove notification when chat is opened
+      setActiveId(item.id);
+    }
+  };
+
+  const handleChatToggle = () => {
+    setIsChatbotOpen(!isChatbotOpen);
+    if (!isChatbotOpen) {
+      setHasNotification(false); // Remove notification when chat is opened
+    }
+  };
+
   const NavLink = ({
     href,
     icon,
     label,
     id,
+    action,
   }: {
     href: string;
     icon: string;
     label: string;
     id: number;
+    action?: string;
   }) => {
-    const active = isActive(href);
+    const active = isActive(href) || (action === 'chatbot' && activeId === id);
     
-    return (
-      <Link href={href} className="block w-full">
-        <div className="relative">
-          {/* Background container */}
+    const content = (
+      <div className="relative">
+        {/* Background container */}
+        {active && (
+          <div
+            key={`bg-${id}-${pathname}`}
+            className="absolute inset-x-0 -top-2 -bottom-2 -mx-6 bg-teal-800/10 rounded-xl"
+          />
+        )}
+        {/* Content container */}
+        <div
+          className={`flex items-center relative gap-6 py-2 px-4 transition-colors ${
+            active ? 'text-teal-800' : 'text-gray-800 hover:text-teal-600'
+          }`}
+        >
+          <img src={icon} alt={label} className="w-6 h-6" />
+          <span className="text-xl">{label}</span>
           {active && (
             <div
-              key={`bg-${id}-${pathname}`}
-              className="absolute inset-x-0 -top-2 -bottom-2 -mx-6 bg-teal-800/10 rounded-xl"
+              key={`indicator-${id}-${pathname}`}
+              className="absolute right-[-24px] top-1/2 -translate-y-1/2 h-6.5 w-1.5 bg-[#1FA98D] rounded-l"
             />
           )}
-          {/* Content container */}
-          <div
-            className={`flex items-center relative gap-6 py-2 px-4 transition-colors ${
-              active ? 'text-teal-800' : 'text-gray-800 hover:text-teal-600'
-            }`}
-          >
-            <img src={icon} alt={label} className="w-6 h-6" />
-            <span className="text-xl">{label}</span>
-            {active && (
-              <div
-                key={`indicator-${id}-${pathname}`}
-                className="absolute right-[-24px] top-1/2 -translate-y-1/2 h-6.5 w-1.5 bg-[#1FA98D] rounded-l"
-              />
-            )}
-          </div>
         </div>
+      </div>
+    );
+
+    if (action === 'chatbot') {
+      return (
+        <button
+          onClick={(e) => handleNavClick({ id, title: label, link: href, icon, action }, e)}
+          className="block w-full text-left"
+        >
+          {content}
+        </button>
+      );
+    }
+
+    return (
+      <Link href={href} className="block w-full">
+        {content}
       </Link>
     );
   };
 
   return (
-    <div className="fixed left-0 top-0 h-screen w-70 bg-teal-100 p-6 flex flex-col gap-8 overflow-y-auto">
-      <div className="flex justify-center items-center mb-12">
-        <div className="text-teal-500">
-          <img src="/icons/CalorEase.png" alt="Logo" className="h-15 w-45" />
+    <>
+      <div className="fixed left-0 top-0 h-screen w-70 bg-teal-100 p-6 flex flex-col gap-8 overflow-y-auto">
+        <div className="flex justify-center items-center mb-12">
+          <div className="text-teal-500">
+            <img src="/icons/CalorEase.png" alt="Logo" className="h-15 w-45" />
+          </div>
+        </div>
+
+        <nav className="flex flex-col gap-4">
+          {navigation.map((item) => (
+            <NavLink
+              key={item.id}
+              href={item.link}
+              icon={item.icon}
+              label={item.title}
+              id={item.id}
+              action={item.action}
+            />
+          ))}
+        </nav>
+
+        <div className="mt-auto">
+          <Link href="/logout">
+            <div className="flex items-center gap-8 text-gray-800 hover:text-teal-600 transition-colors py-2 px-4">
+              <img src="/icons/logout_ic.png" alt="Logout" className="w-6 h-6" />
+              <span className="text-xl">Logout</span>
+            </div>
+          </Link>
         </div>
       </div>
 
-      <nav className="flex flex-col gap-4">
-        {navigation.map((item) => (
-          <NavLink
-            key={item.id}
-            href={item.link}
-            icon={item.icon}
-            label={item.title}
-            id={item.id}
-          />
-        ))}
-      </nav>
-
-      <div className="mt-auto">
-        <Link href="/logout">
-          <div className="flex items-center gap-8 text-gray-800 hover:text-teal-600 transition-colors py-2 px-4">
-            <img src="/icons/logout_ic.png" alt="Logout" className="w-6 h-6" />
-            <span className="text-xl">Logout</span>
-          </div>
-        </Link>
-      </div>
-    </div>
+      {/* Chatbot Floating Component */}
+      <Chatbot 
+        isOpen={isChatbotOpen} 
+        onToggle={handleChatToggle}
+        hasNotification={hasNotification}
+      />
+    </>
   );
 };
 

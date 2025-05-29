@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React from "react";
 import Image from "next/image";
+import { useFavorites } from "../context/FavoritesContext";
 
 interface RecipeCardProps {
   title: string;
@@ -14,6 +15,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
   categories,
   image,
 }) => {
+<<<<<<< HEAD
   const [isLiked, setIsLiked] = useState<boolean>(false);
   const truncateCategory = (category: string, maxLength: number = 12) => {
     if (category.length > maxLength) {
@@ -53,6 +55,15 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
 
   const smartDisplayCategories = getDisplayCategories();
   const hasMoreSmartCategories = smartDisplayCategories.length < categories.length;
+=======
+  const { addToFavorites, removeFromFavorites, isFavorite, getFavoriteByTitle } = useFavorites();
+  const isLiked = isFavorite(title);
+
+  // Limit categories to 2 and add "..." if more
+  const maxCategories = 2;
+  const displayedCategories = categories.slice(0, maxCategories);
+  const hasMoreCategories = categories.length > maxCategories;
+>>>>>>> development
 
   const sanitizeDescription = (text: string) => {
     let cleanText = text.replace(/<[^>]+>/g, "");
@@ -62,8 +73,24 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
 
   const cleanDescription = sanitizeDescription(description);
 
-  const handleLikeClick = () => {
-    setIsLiked((prev) => !prev);
+  const handleLikeClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card click event if you have one
+    
+    if (isLiked) {
+      // Remove from favorites
+      const favoriteRecipe = getFavoriteByTitle(title);
+      if (favoriteRecipe) {
+        removeFromFavorites(favoriteRecipe.id);
+      }
+    } else {
+      // Add to favorites
+      addToFavorites({
+        title,
+        description: cleanDescription,
+        categories,
+        image: image || "/recipe-image.jpg",
+      });
+    }
   };
 
   return (
@@ -76,8 +103,15 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
           className="object-cover"
         />
         <button
+<<<<<<< HEAD
           className="absolute top-3 right-3 bg-white/95 backdrop-blur-sm p-2.5 rounded-full shadow-lg hover:shadow-xl hover:scale-110 transition-all duration-200 cursor-pointer border border-[#A5DDD1]/20"
+=======
+          className={`absolute top-2 right-2 bg-white p-2 rounded-full shadow-md hover:scale-110 transition-all duration-200 cursor-pointer ${
+            isLiked ? 'bg-red-50 shadow-red-200' : ''
+          }`}
+>>>>>>> development
           onClick={handleLikeClick}
+          title={isLiked ? "Remove from favorites" : "Add to favorites"}
         >
           <Image
             src={isLiked ? "/icons/love-filled.png" : "/icons/love.png"}

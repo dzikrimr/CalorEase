@@ -1,3 +1,4 @@
+// app/api/recipes/route.ts
 import { NextResponse } from 'next/server';
 
 export async function GET(request: Request) {
@@ -42,11 +43,16 @@ export async function GET(request: Request) {
     const data = await response.json();
 
     const recipes = data.results.map((recipe: any) => ({
+      id: recipe.id, // Include the recipe ID
       title: recipe.title || 'Untitled Recipe',
       description: recipe.summary 
         ? recipe.summary.replace(/<[^>]*>?/gm, '').substring(0, 100) + '...'
         : 'No description available',
-      categories: recipe.diets || ['healthy'],
+      categories: recipe.diets && recipe.diets.length > 0 
+        ? recipe.diets 
+        : recipe.dishTypes && recipe.dishTypes.length > 0 
+          ? recipe.dishTypes 
+          : ['healthy'],
       image: recipe.image || '/recipe-image.jpg',
     }));
 

@@ -22,6 +22,9 @@ const ProductCard: React.FC<{ product: ProductProps }> = ({ product }) => {
     ? `${product.title.substring(0, 45)}...` 
     : product.title;
 
+  // Format rating to always show one decimal place
+  const formattedRating = Number(product.rating).toFixed(1);
+
   // Handle button click
   const handleViewToShop = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -63,7 +66,7 @@ const ProductCard: React.FC<{ product: ProductProps }> = ({ product }) => {
             ))}
           </div>
           <span className="bg-white text-gray-800 text-xs font-semibold px-2.5 py-0.5 rounded-sm ms-3">
-            {product.rating || '5.0'}
+            {formattedRating}
           </span>
         </div>
         

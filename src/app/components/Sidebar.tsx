@@ -30,9 +30,9 @@ export const navigation = [
   {
     id: 4,
     title: 'Chatbot',
-    link: '#', // Changed to # since it will trigger modal
+    link: '#',
     icon: '/icons/chat_ic.png',
-    action: 'chatbot', // Added action identifier
+    action: 'chatbot',
   },
   {
     id: 5,
@@ -46,46 +46,93 @@ const Sidebar: React.FC = () => {
   const pathname = usePathname();
   const router = useRouter();
   const { user } = useAuth();
-  const [activeId, setActiveId] = useState<number | null>(null);
+  const [activeId, setActiveId] = useState<number>(1); // Initialize with Home as default
   const [isChatbotOpen, setIsChatbotOpen] = useState(false);
+  const [isChatbotSelected, setIsChatbotSelected] = useState(false);
   const [hasNotification, setHasNotification] = useState(true);
+  const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
   const prevPathRef = useRef<string | null>(null);
 
-  useEffect(() => {
-    const currentItem = navigation.find((item) => item.link === pathname);
-    if (currentItem && prevPathRef.current !== pathname) {
-      setActiveId(currentItem.id);
+  // Function to determine which navigation item should be active based on current path
+  const getActiveItemId = (currentPath: string): number => {
+    console.log('Current path:', currentPath); // Debug log
+    
+    // Check for route patterns first (more specific patterns)
+    if (currentPath.startsWith('/recipe/')) {
+      console.log('Recipe detail page - setting Home as active'); // Debug log
+      return 1; // Home (dashboard) should remain active
     }
+    
+    // Check for exact matches
+    const exactMatch = navigation.find((item) => item.link === currentPath);
+    if (exactMatch) {
+      console.log('Exact match found:', exactMatch.title); // Debug log
+      return exactMatch.id;
+    }
+
+    // Add other route patterns as needed
+    if (currentPath.startsWith('/marketplace/')) {
+      return 2; // Marketplace should remain active
+    }
+    
+    if (currentPath.startsWith('/favorites/')) {
+      return 3; // Favorites should remain active
+    }
+    
+    if (currentPath.startsWith('/profil/')) {
+      return 5; // Profile should remain active
+    }
+
+    // Default to Home if no match found
+    console.log('No match found - defaulting to Home'); // Debug log
+    return 1;
+  };
+
+  useEffect(() => {
+    console.log('useEffect triggered, pathname:', pathname); // Debug log
+    const activeItemId = getActiveItemId(pathname);
+    console.log('Setting activeId to:', activeItemId); // Debug log
+    setActiveId(activeItemId);
     prevPathRef.current = pathname;
   }, [pathname]);
-
-  const isActive = (path: string) => {
-    return pathname === path;
-  };
 
   const handleNavClick = (item: typeof navigation[0], e: React.MouseEvent) => {
     if (item.action === 'chatbot') {
       e.preventDefault();
       setIsChatbotOpen(true);
-      setHasNotification(false); // Remove notification when chat is opened
-      setActiveId(item.id);
+      setIsChatbotSelected(true);
+      setHasNotification(false);
     }
   };
 
   const handleChatToggle = () => {
     setIsChatbotOpen(!isChatbotOpen);
     if (!isChatbotOpen) {
-      setHasNotification(false); // Remove notification when chat is opened
+      setHasNotification(false);
+      setIsChatbotSelected(true); // Select chatbot when opening
+    } else {
+      setIsChatbotSelected(false); // Deselect chatbot when closing
     }
   };
 
-  const handleLogout = async () => {
+  const handleLogoutClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsLogoutDialogOpen(true); // Show confirmation dialog
+  };
+
+  const handleConfirmLogout = async () => {
     try {
-      await signOut(auth);
-      router.push('/login');
-    } catch (error) {
-      console.error('Logout failed:', error);
+      await signOut(auth); // Sign out from Firebase
+      router.push('/login'); // Redirect to login page
+    } catch (error: any) {
+      console.error('Logout error:', error.message);
+    } finally {
+      setIsLogoutDialogOpen(false); // Close dialog
     }
+  };
+
+  const handleCancelLogout = () => {
+    setIsLogoutDialogOpen(false); // Close dialog without logging out
   };
 
   const NavLink = ({
@@ -101,18 +148,16 @@ const Sidebar: React.FC = () => {
     id: number;
     action?: string;
   }) => {
-    const active = isActive(href) || (action === 'chatbot' && activeId === id);
-    
+    const active = (action === 'chatbot' && isChatbotSelected) || (!action && activeId === id);
+
     const content = (
       <div className="relative">
-        {/* Background container */}
         {active && (
           <div
             key={`bg-${id}-${pathname}`}
-            className="absolute inset-x-0 -top-2 -bottom-2 -mx-6 bg-teal-800/10 rounded-xl"
+            className="absolute inset-x-0 -top-2 -bottom-2 -mx-6 bg-teal-800/10 rounded-xl cursor-pointer"
           />
         )}
-        {/* Content container */}
         <div
           className={`flex items-center relative gap-6 py-2 px-4 transition-colors ${
             active ? 'text-teal-800' : 'text-gray-800 hover:text-teal-600'
@@ -134,7 +179,7 @@ const Sidebar: React.FC = () => {
       return (
         <button
           onClick={(e) => handleNavClick({ id, title: label, link: href, icon, action }, e)}
-          className="block w-full text-left"
+          className="block w-full text-left cursor-pointer"
         >
           {content}
         </button>
@@ -172,18 +217,48 @@ const Sidebar: React.FC = () => {
 
         <div className="mt-auto">
           <button
-            onClick={handleLogout}
-            className="flex items-center gap-8 text-gray-800 hover:text-teal-600 transition-colors py-2 px-4 w-full"
+            onClick={handleLogoutClick}
+            className="block w-full text-left"
           >
-            <img src="/icons/logout_ic.png" alt="Logout" className="w-6 h-6" />
-            <span className="text-xl">Logout</span>
+            <div className="flex items-center gap-8 text-gray-800 hover:text-teal-600 transition-colors py-2 px-4 cursor-pointer">
+              <img src="/icons/logout_ic.png" alt="Logout" className="w-6 h-6" />
+              <span className="text-xl">Logout</span>
+            </div>
           </button>
         </div>
       </div>
 
+      {/* Logout Confirmation Dialog */}
+      {isLogoutDialogOpen && (
+        <div className="fixed inset-0 bg-black/50 bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4 shadow-lg">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">
+              Konfirmasi Logout
+            </h2>
+            <p className="text-gray-600 mb-6">
+              Apakah Anda yakin ingin keluar dari akun Anda?
+            </p>
+            <div className="flex justify-end gap-4">
+              <button
+                onClick={handleCancelLogout}
+                className="px-6 py-2 border border-teal-500 text-teal-500 rounded-md hover:bg-teal-50 transition-colors font-medium cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleConfirmLogout}
+                className="px-6 py-2 bg-teal-500 text-white rounded-md hover:bg-teal-600 active:bg-teal-700 transition-colors font-medium cursor-pointer"
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Chatbot Floating Component */}
-      <Chatbot 
-        isOpen={isChatbotOpen} 
+      <Chatbot
+        isOpen={isChatbotOpen}
         onToggle={handleChatToggle}
         hasNotification={hasNotification}
       />

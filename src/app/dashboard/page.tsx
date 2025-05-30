@@ -12,6 +12,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { useAuth } from '../context/AuthContext';
 
 interface Recipe {
+  id: string | number;
   title: string;
   description: string;
   categories: string[];
@@ -249,7 +250,8 @@ const HomePage: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 max-w-[1200px] mx-auto">
                 {recipes.map((recipe, index) => (
                   <RecipeCard
-                    key={index}
+                    key={recipe.id || index} // Use recipe ID as key
+                    id={recipe.id} // Pass the ID to RecipeCard
                     title={recipe.title}
                     description={recipe.description}
                     categories={recipe.categories}
@@ -318,8 +320,7 @@ const HomePage: React.FC = () => {
                     />
                   </button>
                   <div className="text-gray-600 text-sm">
-                    {Math.floor(offset / recipesPerPage) + 1} of{" "}
-                    {totalPages}
+                    {Math.floor(offset / recipesPerPage) + 1} of {totalPages}
                   </div>
                   <button
                     onClick={handleNextPage}

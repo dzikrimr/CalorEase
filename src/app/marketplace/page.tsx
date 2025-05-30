@@ -23,54 +23,91 @@ const Marketplace: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [totalPages, setTotalPages] = useState(1);
-  const itemsPerPage = 12;
+  const [totalResults, setTotalResults] = useState(0);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const itemsPerPage = 12; // Display 12 products per page
 
   const categories = ["All", "Vegetable", "Fruit", "Meat", "Spices", "Others"];
 
-  // Fetch products from API
+  const formatPrice = (priceStr: string): string => {
+    let numericPrice = priceStr.replace(/[^0-9,.]/g, "").replace(",", ".");
+    const price = parseFloat(numericPrice);
+    if (isNaN(price)) return "Rp 0";
+    return `Rp ${price.toLocaleString("id-ID", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    })}`;
+  };
+
   const fetchProducts = async (query = "", page = 1) => {
     setIsLoading(true);
+    setErrorMessage(null);
     try {
+      const foodKeywords = "fresh produce edible grocery";
+      const finalQuery = query ? `${query} ${foodKeywords}` : foodKeywords;
+      const limit = 100; // Fetch a large batch (max allowed by SerpAPI)
+
       const response = await fetch(
         `/api/marketplace?query=${encodeURIComponent(
-          query
-        )}&page=${page}&limit=${itemsPerPage}`
+          finalQuery
+        )}&page=${page}&limit=${limit}`
       );
       const data = await response.json();
 
-      console.log("Raw API Response:", data);
+      console.log("Raw API Response:", {
+        shopping_results: data.shopping_results?.length,
+        total_results: data.pagination?.total,
+        query: finalQuery,
+        page,
+        error: data.error,
+      });
 
-      if (data.shopping_results) {
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to fetch products");
+      }
+
+      if (data.shopping_results && data.shopping_results.length > 0) {
         const formattedProducts = data.shopping_results.map(
-          (item: any, index: number) => {
-            console.log(`Product ${index}:`, item);
-            const product = {
-              id: item.product_id || `prod-${index}-${Date.now()}`,
-              title: item.title,
-              thumbnail: item.thumbnail,
-              rating: item.rating || 5.0,
-              price: item.price,
-              source: item.source,
-              link: item.link || item.product_link || item.url || "",
-              category: determineCategory(item.title),
-            };
-            console.log("Formatted product:", product);
-            return product;
-          }
+          (item: any, index: number) => ({
+            id: item.product_id || `prod-${index}-${Date.now()}`,
+            title: item.title || "Unknown Product",
+            thumbnail: item.thumbnail || "/images/placeholder-food.jpg",
+            rating: Number(item.rating || 5.0).toFixed(1),
+            price: formatPrice(
+              item.price || item.extracted_price?.toString() || "0"
+            ),
+            source: item.source || "Unknown",
+            link: item.link || item.product_link || item.url || "",
+            category: determineCategory(item.title || ""),
+          })
         );
 
         console.log("All formatted products:", formattedProducts);
         setProducts(formattedProducts);
-        setTotalPages(Math.ceil(formattedProducts.length / itemsPerPage));
+        const total = data.pagination?.total || formattedProducts.length;
+        setTotalResults(total);
+        setTotalPages(Math.ceil(total / itemsPerPage));
+      } else {
+        setProducts([]);
+        setTotalResults(0);
+        setTotalPages(1);
+        setErrorMessage("No products found for this query.");
       }
     } catch (error) {
       console.error("Error fetching products:", error);
+      setProducts([]);
+      setTotalResults(0);
+      setTotalPages(1);
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "An error occurred while fetching products."
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Simple category determination based on product title
   const determineCategory = (title: string): string => {
     const lowerTitle = title.toLowerCase();
     if (lowerTitle.includes("sayur") || lowerTitle.includes("vegetable"))
@@ -84,26 +121,31 @@ const Marketplace: React.FC = () => {
     return "Others";
   };
 
-  // Initial fetch
   useEffect(() => {
     fetchProducts();
   }, []);
 
-  // Fetch when page changes
   useEffect(() => {
-    fetchProducts(searchTerm, currentPage);
-  }, [currentPage]); // Removed searchTerm from dependencies
+    fetchProducts(searchTerm, 1);
+  }, [searchTerm]);
 
-  // Filter products based on selected category and ensure max 12 items
+  // Filter products by category
   const filtered =
     activeCategory === "All"
       ? products
       : products.filter((product) => product.category === activeCategory);
 
+  // Apply client-side pagination
   const filteredProducts = filtered.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
+
+  // Update total results and pages after filtering
+  useEffect(() => {
+    setTotalResults(filtered.length);
+    setTotalPages(Math.ceil(filtered.length / itemsPerPage));
+  }, [filtered]);
 
   const handleCategoryChange = (category: string) => {
     setActiveCategory(category);
@@ -115,8 +157,8 @@ const Marketplace: React.FC = () => {
   };
 
   const handleSearchSubmit = () => {
-    setCurrentPage(1); // Reset to first page on new search
-    fetchProducts(searchTerm, 1); // Trigger search with current searchTerm
+    setCurrentPage(1);
+    fetchProducts(searchTerm, 1);
   };
 
   const handlePageChange = (page: number) => {
@@ -125,16 +167,11 @@ const Marketplace: React.FC = () => {
 
   return (
     <div className="flex min-h-screen bg-white">
-      {/* Left Sidebar */}
       <Sidebar />
-
-      {/* Main Content */}
       <div className="ml-70 flex-grow p-6">
         <h1 className="text-3xl font-semibold text-teal-600 mb-6">
-          Menampilkan {filtered.length} Hasil Bahan dari Marketplace
+          Menampilkan {totalResults} Hasil Bahan dari Marketplace
         </h1>
-
-        {/* Category Tabs with Search */}
         <CategoryTabs
           categories={categories}
           activeCategory={activeCategory}
@@ -144,34 +181,32 @@ const Marketplace: React.FC = () => {
           onSearchSubmit={handleSearchSubmit}
           searchPlaceholder="Cari bahan makanan..."
         />
-
         {isLoading ? (
           <div className="flex justify-center items-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-500"></div>
           </div>
+        ) : errorMessage ? (
+          <div className="text-center py-12">
+            <p className="text-red-500 text-lg">{errorMessage}</p>
+          </div>
         ) : (
           <>
-            {/* Product Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {filteredProducts.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}
             </div>
-
-            {/* Show message if no products found */}
             {filteredProducts.length === 0 && (
               <div className="text-center py-12">
                 <p className="text-gray-500 text-lg">
-                  Tidak ada produk yang ditemukan{" "}
-                  {searchTerm ? `untuk "${searchTerm}"` : ""}
+                  Tidak ada produk yang ditemukan untuk kategori "{activeCategory}"
+                  {searchTerm ? ` dan pencarian "${searchTerm}"` : ""}
                 </p>
               </div>
             )}
           </>
         )}
       </div>
-
-      {/* Right Sidebar - Pagination */}
       <PaginationSidebar
         currentPage={currentPage}
         totalPages={totalPages}

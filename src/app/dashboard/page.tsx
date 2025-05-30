@@ -3,9 +3,13 @@ import React, { useState, useEffect } from "react";
 import { Input } from "antd";
 import { CloseCircleOutlined } from "@ant-design/icons";
 import Image from "next/image";
+import { useRouter } from 'next/navigation';
 import RecipeCard from "../components/RecipeCard";
 import Sidebar from "../components/Sidebar";
 import CalorieWaveTracker from "../components/CalorieWaveTracker";
+import { db } from '../lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import { useAuth } from '../context/AuthContext';
 
 interface Recipe {
   title: string;
@@ -15,6 +19,8 @@ interface Recipe {
 }
 
 const HomePage: React.FC = () => {
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
   const [searchText, setSearchText] = useState<string>("");
   const [inputText, setInputText] = useState<string>("");
   const [targetCalories, setTargetCalories] = useState<number>(2500);
@@ -26,6 +32,41 @@ const HomePage: React.FC = () => {
   const [totalPages, setTotalPages] = useState<number>(1);
   const recipesPerPage = 12;
 
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/login');
+    }
+  }, [user, authLoading, router]);
+
+  // Fetch user's calorie data from Firestore
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (!user) return; // Only fetch if user is authenticated
+
+      try {
+        const userDocRef = doc(db, 'users', user.uid);
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          setTargetCalories(userData.dailyCalories || 2500);
+          // You can also fetch currentCalories if you store daily intake in Firestore
+          // For now, we'll keep currentCalories as a static value or update it elsewhere
+        } else {
+          console.log('No user data found in Firestore');
+        }
+      } catch (err) {
+        console.error('Error fetching user data from Firestore:', err);
+        setError('Failed to load user data.');
+      }
+    };
+
+    if (!authLoading && user) {
+      fetchUserData();
+    }
+  }, [user, authLoading]);
+
+  // Fetch recipes
   useEffect(() => {
     const fetchRecipes = async () => {
       setLoading(true);
@@ -55,8 +96,10 @@ const HomePage: React.FC = () => {
       }
     };
 
-    fetchRecipes();
-  }, [searchText, offset]);
+    if (!authLoading && user) {
+      fetchRecipes();
+    }
+  }, [searchText, offset, user, authLoading]);
 
   const handleSearch = () => {
     console.log("Search button clicked with value:", inputText);
@@ -79,6 +122,24 @@ const HomePage: React.FC = () => {
       Math.min((totalPages - 1) * recipesPerPage, prev + recipesPerPage)
     );
   const handleLastPage = () => setOffset((totalPages - 1) * recipesPerPage);
+
+  if (authLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-white">
+        <div className="text-center">
+          <svg className="animate-spin h-8 w-8 text-teal-500 mx-auto mb-4" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null; // Redirect will handle this
+  }
 
   return (
     <div className="flex min-h-screen bg-white overflow-x-hidden">
@@ -110,7 +171,7 @@ const HomePage: React.FC = () => {
           </div>
           <div className="absolute inset-0 flex flex-col justify-center px-8 z-20">
             <h1 className="text-white text-3xl font-bold mb-1 text-center">
-              Hello, John Doe
+              Hello, {user.displayName || "User"}
             </h1>
             <p className="text-white text-xl mb-1 text-center">
               Let's make good food choices today!

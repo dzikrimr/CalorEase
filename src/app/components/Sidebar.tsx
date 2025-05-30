@@ -1,9 +1,12 @@
 "use client";
 
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import Chatbot from './Chatbot'; // Adjust path based on your component location
+import { useAuth } from '../context/AuthContext';
+import { signOut } from 'firebase/auth';
+import { auth } from '../lib/firebase';
 
 export const navigation = [
   {
@@ -41,6 +44,8 @@ export const navigation = [
 
 const Sidebar: React.FC = () => {
   const pathname = usePathname();
+  const router = useRouter();
+  const { user } = useAuth();
   const [activeId, setActiveId] = useState<number | null>(null);
   const [isChatbotOpen, setIsChatbotOpen] = useState(false);
   const [hasNotification, setHasNotification] = useState(true);
@@ -71,6 +76,15 @@ const Sidebar: React.FC = () => {
     setIsChatbotOpen(!isChatbotOpen);
     if (!isChatbotOpen) {
       setHasNotification(false); // Remove notification when chat is opened
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      router.push('/login');
+    } catch (error) {
+      console.error('Logout failed:', error);
     }
   };
 
@@ -157,12 +171,13 @@ const Sidebar: React.FC = () => {
         </nav>
 
         <div className="mt-auto">
-          <Link href="/logout">
-            <div className="flex items-center gap-8 text-gray-800 hover:text-teal-600 transition-colors py-2 px-4">
-              <img src="/icons/logout_ic.png" alt="Logout" className="w-6 h-6" />
-              <span className="text-xl">Logout</span>
-            </div>
-          </Link>
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-8 text-gray-800 hover:text-teal-600 transition-colors py-2 px-4 w-full"
+          >
+            <img src="/icons/logout_ic.png" alt="Logout" className="w-6 h-6" />
+            <span className="text-xl">Logout</span>
+          </button>
         </div>
       </div>
 

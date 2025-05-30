@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { auth } from '../lib/firebase';
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { useAuth } from '../context/AuthContext';
 
 const LoginPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -14,6 +15,14 @@ const LoginPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const { user, loading } = useAuth();
+
+  // Redirect to dashboard if already logged in
+  useEffect(() => {
+    if (!loading && user) {
+      router.push('/dashboard');
+    }
+  }, [user, loading, router]);
 
   // Handle email/password login
   const handleSubmit = async (e: React.FormEvent) => {
@@ -57,6 +66,20 @@ const LoginPage: React.FC = () => {
   const togglePassword = () => {
     setShowPassword(!showPassword);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-[var(--primary-50)] via-[var(--primary-100)] to-[var(--primary-200)]">
+        <div className="text-center">
+          <svg className="animate-spin h-8 w-8 text-teal-500 mx-auto mb-4" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-[var(--primary-50)] via-[var(--primary-100)] to-[var(--primary-200)] relative overflow-hidden">

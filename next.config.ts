@@ -10,6 +10,11 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
+        hostname: 'spoonacular.com',
+        pathname: '**', // Allow all paths under spoonacular.com
+      },
+      {
+        protocol: 'https',
         hostname: 'serpapi.com',
       },
       {

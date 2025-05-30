@@ -1,8 +1,10 @@
 import React from "react";
 import Image from "next/image";
-import { useFavorites } from "../context/FavoritesContext";
+import { useRouter } from "next/navigation";
+import { useFavorites } from "app/context/FavoritesContext";
 
 interface RecipeCardProps {
+  id?: string | number; // Add ID prop for navigation
   title: string;
   description: string;
   categories: string[];
@@ -10,13 +12,16 @@ interface RecipeCardProps {
 }
 
 const RecipeCard: React.FC<RecipeCardProps> = ({
+  id,
   title,
   description,
   categories,
   image,
 }) => {
-<<<<<<< HEAD
-  const [isLiked, setIsLiked] = useState<boolean>(false);
+  const router = useRouter();
+  const { addToFavorites, removeFromFavorites, isFavorite, getFavoriteByTitle } = useFavorites();
+  const isLiked = isFavorite(title);
+
   const truncateCategory = (category: string, maxLength: number = 12) => {
     if (category.length > maxLength) {
       return category.substring(0, maxLength) + "...";
@@ -55,15 +60,6 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
 
   const smartDisplayCategories = getDisplayCategories();
   const hasMoreSmartCategories = smartDisplayCategories.length < categories.length;
-=======
-  const { addToFavorites, removeFromFavorites, isFavorite, getFavoriteByTitle } = useFavorites();
-  const isLiked = isFavorite(title);
-
-  // Limit categories to 2 and add "..." if more
-  const maxCategories = 2;
-  const displayedCategories = categories.slice(0, maxCategories);
-  const hasMoreCategories = categories.length > maxCategories;
->>>>>>> development
 
   const sanitizeDescription = (text: string) => {
     let cleanText = text.replace(/<[^>]+>/g, "");
@@ -74,7 +70,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
   const cleanDescription = sanitizeDescription(description);
 
   const handleLikeClick = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent card click event if you have one
+    e.stopPropagation(); // Prevent card click event
     
     if (isLiked) {
       // Remove from favorites
@@ -93,8 +89,20 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
     }
   };
 
+const handleCardClick = () => {
+    if (id) {
+      console.log("Navigating to recipe ID:", id);
+      router.push(`/recipe-detail/${id}`); // Changed from /recipe/ to /recipe-detail/
+    } else {
+      console.error("Recipe ID is undefined");
+    }
+  };
+
   return (
-    <div className="bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-xl border border-[#A5DDD1]/20 w-full max-w-[300px] flex flex-col cursor-pointer transition-all duration-300 hover:-translate-y-1">
+    <div 
+      className="bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-xl border border-[#A5DDD1]/20 w-full max-w-[300px] flex flex-col cursor-pointer transition-all duration-300 hover:-translate-y-1"
+      onClick={handleCardClick}
+    >
       <div className="relative aspect-[3/2]">
         <Image
           src={image || "/recipe-image.jpg"}
@@ -103,13 +111,9 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
           className="object-cover"
         />
         <button
-<<<<<<< HEAD
-          className="absolute top-3 right-3 bg-white/95 backdrop-blur-sm p-2.5 rounded-full shadow-lg hover:shadow-xl hover:scale-110 transition-all duration-200 cursor-pointer border border-[#A5DDD1]/20"
-=======
-          className={`absolute top-2 right-2 bg-white p-2 rounded-full shadow-md hover:scale-110 transition-all duration-200 cursor-pointer ${
+          className={`absolute top-3 right-3 bg-white/95 backdrop-blur-sm p-2.5 rounded-full shadow-lg hover:shadow-xl hover:scale-110 transition-all duration-200 cursor-pointer border border-[#A5DDD1]/20 ${
             isLiked ? 'bg-red-50 shadow-red-200' : ''
           }`}
->>>>>>> development
           onClick={handleLikeClick}
           title={isLiked ? "Remove from favorites" : "Add to favorites"}
         >
@@ -143,7 +147,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
           {smartDisplayCategories.map((category, i) => (
             <span
               key={i}
-              className="px-3 py-1.5 bg-white/20 backdrop-blur-sm border border-white/40 text-white text-xs font-medium rounded-full transition-all duration-200 hover:bg-white/30 whitespace-nowrap"
+              className="px-3 py-1.5 bg-white/20 backdrop-blur-sm border border-white/40 text-white text-xs font-medium rounded-full transition-all duration-200 hover:bg-white/30 whitespace-nowrap capitalize"
               title={categories[i]} 
             >
               {category}

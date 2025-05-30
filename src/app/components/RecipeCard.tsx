@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useFavorites } from "app/context/FavoritesContext";
@@ -21,6 +21,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
   const router = useRouter();
   const { addToFavorites, removeFromFavorites, isFavorite, getFavoriteByTitle } = useFavorites();
   const isLiked = isFavorite(title);
+  const [isLoading, setIsLoading] = useState(false);
 
   const truncateCategory = (category: string, maxLength: number = 12) => {
     if (category.length > maxLength) {
@@ -69,23 +70,29 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
 
   const cleanDescription = sanitizeDescription(description);
 
-  const handleLikeClick = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent card click event
-    
-    if (isLiked) {
-      // Remove from favorites
-      const favoriteRecipe = getFavoriteByTitle(title);
-      if (favoriteRecipe) {
-        removeFromFavorites(favoriteRecipe.id);
+  const handleLikeClick = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsLoading(true);
+
+    try {
+      if (isLiked) {
+        const favoriteRecipe = getFavoriteByTitle(title);
+        if (favoriteRecipe) {
+          await removeFromFavorites(favoriteRecipe.id);
+        }
+      } else {
+        await addToFavorites({
+          title,
+          description: cleanDescription,
+          categories,
+          image: image || "/recipe-image.jpg",
+        });
       }
-    } else {
-      // Add to favorites
-      addToFavorites({
-        title,
-        description: cleanDescription,
-        categories,
-        image: image || "/recipe-image.jpg",
-      });
+    } catch (error) {
+      console.error('Error handling favorite:', error);
+      alert('Failed to update favorite. Please check your connection or permissions.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -113,8 +120,9 @@ const handleCardClick = () => {
         <button
           className={`absolute top-3 right-3 bg-white/95 backdrop-blur-sm p-2.5 rounded-full shadow-lg hover:shadow-xl hover:scale-110 transition-all duration-200 cursor-pointer border border-[#A5DDD1]/20 ${
             isLiked ? 'bg-red-50 shadow-red-200' : ''
-          }`}
+          } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
           onClick={handleLikeClick}
+          disabled={isLoading}
           title={isLiked ? "Remove from favorites" : "Add to favorites"}
         >
           <Image

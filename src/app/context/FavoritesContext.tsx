@@ -1,102 +1,111 @@
 "use client";
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { db } from '../lib/firebase';
+import { collection, query, where, onSnapshot, doc, deleteDoc, setDoc } from 'firebase/firestore';
+import { useAuth } from './AuthContext';
 
 export interface FavoriteRecipe {
   id: string;
   title: string;
   description: string;
-  categories: string[];
   image: string;
+  categories: string[];
   dateAdded: string;
+  userId: string;
 }
 
 interface FavoritesContextType {
   favoriteRecipes: FavoriteRecipe[];
-  addToFavorites: (recipe: Omit<FavoriteRecipe, 'id' | 'dateAdded'>) => void;
-  removeFromFavorites: (recipeId: string) => void;
+  addToFavorites: (recipe: Omit<FavoriteRecipe, 'id' | 'dateAdded' | 'userId'>) => Promise<void>;
+  removeFromFavorites: (recipeId: string) => Promise<void>;
   isFavorite: (title: string) => boolean;
   getFavoriteByTitle: (title: string) => FavoriteRecipe | undefined;
 }
 
-const FavoritesContext = createContext<FavoritesContextType | undefined>(undefined);
+const FavoritesContext = createContext<FavoritesContextType>({
+  favoriteRecipes: [],
+  addToFavorites: async () => {},
+  removeFromFavorites: async () => {},
+  isFavorite: () => false,
+  getFavoriteByTitle: () => undefined,
+});
 
-export const useFavorites = () => {
-  const context = useContext(FavoritesContext);
-  if (!context) {
-    throw new Error('useFavorites must be used within a FavoritesProvider');
-  }
-  return context;
-};
-
-interface FavoritesProviderProps {
-  children: ReactNode;
-}
-
-export const FavoritesProvider: React.FC<FavoritesProviderProps> = ({ children }) => {
+export const FavoritesProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
   const [favoriteRecipes, setFavoriteRecipes] = useState<FavoriteRecipe[]>([]);
 
-  // Load favorites from localStorage on mount
   useEffect(() => {
-    try {
-      const savedFavorites = localStorage.getItem('favoriteRecipes');
-      if (savedFavorites) {
-        const parsedFavorites = JSON.parse(savedFavorites);
-        setFavoriteRecipes(parsedFavorites);
-      }
-    } catch (error) {
-      console.error('Error loading favorites from localStorage:', error);
+    console.log('FavoritesContext user:', user);
+    if (!user) {
+      setFavoriteRecipes([]);
+      return;
     }
-  }, []);
 
-  // Save favorites to localStorage whenever favoriteRecipes changes
-  useEffect(() => {
-    try {
-      localStorage.setItem('favoriteRecipes', JSON.stringify(favoriteRecipes));
-    } catch (error) {
-      console.error('Error saving favorites to localStorage:', error);
+    const q = query(collection(db, 'favorites'), where('userId', '==', user.uid));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const recipes: FavoriteRecipe[] = [];
+      snapshot.forEach((doc) => {
+        recipes.push({ id: doc.id, ...doc.data() } as FavoriteRecipe);
+      });
+      setFavoriteRecipes(recipes);
+    }, (error) => {
+      console.error('Error fetching favorites:', error);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  const addToFavorites = async (recipe: Omit<FavoriteRecipe, 'id' | 'dateAdded' | 'userId'>) => {
+    console.log('Adding to favorites, user:', user);
+    if (!user) {
+      console.error('No user authenticated');
+      throw new Error('User not authenticated');
     }
-  }, [favoriteRecipes]);
 
-  const addToFavorites = (recipe: Omit<FavoriteRecipe, 'id' | 'dateAdded'>) => {
-    const newFavorite: FavoriteRecipe = {
+    const newFavorite = {
       ...recipe,
-      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-      dateAdded: new Date().toISOString().split('T')[0], // YYYY-MM-DD format
+      id: `${user.uid}-${recipe.title.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}`,
+      userId: user.uid,
+      dateAdded: new Date().toISOString(),
     };
 
-    setFavoriteRecipes(prev => {
-      // Check if recipe already exists (by title)
-      const exists = prev.some(fav => fav.title.toLowerCase() === recipe.title.toLowerCase());
-      if (!exists) {
-        return [...prev, newFavorite];
-      }
-      return prev;
-    });
+    console.log('New favorite document:', newFavorite);
+
+    try {
+      const favoriteRef = doc(db, 'favorites', newFavorite.id);
+      await setDoc(favoriteRef, newFavorite, { merge: true });
+      console.log('Favorite added successfully');
+    } catch (error) {
+      console.error('Error adding to favorites:', error);
+      throw error;
+    }
   };
 
-  const removeFromFavorites = (recipeId: string) => {
-    setFavoriteRecipes(prev => prev.filter(recipe => recipe.id !== recipeId));
+  const removeFromFavorites = async (recipeId: string) => {
+    if (!user) return;
+
+    try {
+      await deleteDoc(doc(db, 'favorites', recipeId));
+    } catch (error) {
+      console.error('Error removing from favorites:', error);
+      throw error;
+    }
   };
 
-  const isFavorite = (title: string): boolean => {
-    return favoriteRecipes.some(recipe => recipe.title.toLowerCase() === title.toLowerCase());
+  const isFavorite = (title: string) => {
+    return favoriteRecipes.some((recipe) => recipe.title === title);
   };
 
-  const getFavoriteByTitle = (title: string): FavoriteRecipe | undefined => {
-    return favoriteRecipes.find(recipe => recipe.title.toLowerCase() === title.toLowerCase());
-  };
-
-  const value: FavoritesContextType = {
-    favoriteRecipes,
-    addToFavorites,
-    removeFromFavorites,
-    isFavorite,
-    getFavoriteByTitle,
+  const getFavoriteByTitle = (title: string) => {
+    return favoriteRecipes.find((recipe) => recipe.title === title);
   };
 
   return (
-    <FavoritesContext.Provider value={value}>
+    <FavoritesContext.Provider value={{ favoriteRecipes, addToFavorites, removeFromFavorites, isFavorite, getFavoriteByTitle }}>
       {children}
     </FavoritesContext.Provider>
   );
 };
+
+export const useFavorites = () => useContext(FavoritesContext);

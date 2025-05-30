@@ -2,8 +2,9 @@
 
 import React, { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { auth, db } from '../lib/firebase';
+import { db } from '../lib/firebase';
 import { doc, setDoc } from 'firebase/firestore';
+import { useAuth } from '../context/AuthContext';
 
 interface FormData {
   nama: string;
@@ -16,6 +17,7 @@ interface FormData {
 
 const ProfileSetup: React.FC = () => {
   const router = useRouter();
+  const { user, loading } = useAuth();
   const [nama, setNama] = useState('');
   const [umur, setUmur] = useState<number>(0);
   const [tinggi, setTinggi] = useState<number>(0);
@@ -24,9 +26,16 @@ const ProfileSetup: React.FC = () => {
   const [aktivitas, setAktivitas] = useState<'rendah' | 'sedang' | 'tinggi' | 'sangat_tinggi' | ''>('');
   const [calories, setCalories] = useState<number>(0);
   const [bmr, setBMR] = useState<number>(0);
-  const [loading, setLoading] = useState(false);
+  const [formLoading, setFormLoading] = useState(false);
   const [showResult, setShowResult] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Redirect to login if not authenticated
+  React.useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login');
+    }
+  }, [user, loading, router]);
 
   // Calculate BMR
   const calculateBMR = (gender: 'pria' | 'wanita', weight: number, height: number, age: number): number => {
@@ -51,15 +60,13 @@ const ProfileSetup: React.FC = () => {
   // Form submission
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setLoading(true);
+    setFormLoading(true);
     setShowResult(false);
     setError(null);
 
-    // Check if user is authenticated
-    const user = auth.currentUser;
     if (!user) {
       setError('User tidak ditemukan. Silakan login kembali.');
-      setLoading(false);
+      setFormLoading(false);
       return;
     }
 
@@ -74,7 +81,7 @@ const ProfileSetup: React.FC = () => {
 
     if (!data.jenisKelamin || !data.aktivitas) {
       setError('Harap lengkapi semua kolom yang diperlukan.');
-      setLoading(false);
+      setFormLoading(false);
       return;
     }
 
@@ -104,7 +111,7 @@ const ProfileSetup: React.FC = () => {
     } catch (err: any) {
       setError(err.message || 'Gagal menyimpan data ke database.');
     } finally {
-      setLoading(false);
+      setFormLoading(false);
     }
   };
 
@@ -124,6 +131,20 @@ const ProfileSetup: React.FC = () => {
     aktivitas !== '' ? 1 : 0,
   ].reduce((sum, value) => sum + value, 0);
   const activeSteps = Math.ceil((filledFields / totalFields) * 6);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-[var(--primary-50)] via-[var(--primary-100)] to-[var(--primary-200)]">
+        <div className="text-center">
+          <svg className="animate-spin h-8 w-8 text-teal-500 mx-auto mb-4" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-[var(--primary-50)] via-[var(--primary-100)] to-[var(--primary-200)] p-4 relative overflow-hidden">
@@ -158,12 +179,12 @@ const ProfileSetup: React.FC = () => {
         </div>
 
         {/* Form or Result Section */}
-        <div className="bg-white rounded-3xl p-8 shadow-lg border border-gray-100">
+        <div className="flex-1 max-w-[550px] bg-[rgba(255,255,255,0.95)] p-8 rounded-2xl shadow-2xl hover:shadow-3xl hover:-translate-y-1 transition-all duration-300 backdrop-blur-2xl border border-[rgba(255,255,255,0.8)]">
           {!showResult ? (
             <>
               <div className="text-center mb-8">
-                <h2 className="text-2xl font-bold text-[var(--primary-800)] mb-2">Setup Profil</h2>
-                <p className="text-gray-600 text-sm">Isi data diri Anda untuk mendapatkan hasil yang akurat</p>
+                <h2 className="text-3xl font-bold text-[var(--primary-800)] mb-2">Setup Profil</h2>
+                <p className="text-[var(--primary-700)] text-base">Isi data diri Anda untuk mendapatkan hasil yang akurat</p>
               </div>
 
               {error && (
@@ -183,9 +204,9 @@ const ProfileSetup: React.FC = () => {
                 ))}
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div>
-                  <label htmlFor="nama" className="block mb-2 text-sm font-semibold text-[var(--primary-800)]">
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="mb-4 relative group">
+                  <label htmlFor="nama" className="block mb-2 text-[var(--primary-700)] font-semibold text-base">
                     Nama Lengkap
                   </label>
                   <input
@@ -195,13 +216,13 @@ const ProfileSetup: React.FC = () => {
                     onChange={(e) => setNama(e.target.value)}
                     required
                     placeholder="Masukkan nama lengkap"
-                    className="w-full p-4 border-2 border-gray-200 rounded-xl text-[var(--primary-800)] focus:border-[var(--primary-400)] focus:ring-2 focus:ring-[var(--primary-400)]/20 focus:outline-none"
+                    className="w-full p-4 border-2 border-[var(--primary-200)] rounded-2xl bg-[var(--primary-50)] text-base focus:border-[var(--primary-500)] focus:bg-white focus:shadow-[0_0_0_4px_rgba(31,169,141,0.1)] focus:-translate-y-0.5 focus:scale-[1.02] transition-all duration-300 outline-none placeholder-[var(--primary-600)]"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-6">
-                  <div>
-                    <label htmlFor="umur" className="block mb-2 text-sm font-semibold text-[var(--primary-800)]">
+                  <div className="mb-4 relative group">
+                    <label htmlFor="umur" className="block mb-2 text-[var(--primary-700)] font-semibold text-base">
                       Umur
                     </label>
                     <input
@@ -213,11 +234,11 @@ const ProfileSetup: React.FC = () => {
                       min="15"
                       max="100"
                       placeholder="25"
-                      className="w-full p-4 border-2 border-gray-200 rounded-xl text-[var(--primary-800)] focus:border-[var(--primary-400)] focus:ring-2 focus:ring-[var(--primary-400)]/20 focus:outline-none"
+                      className="w-full p-4 border-2 border-[var(--primary-200)] rounded-2xl bg-[var(--primary-50)] text-base focus:border-[var(--primary-500)] focus:bg-white focus:shadow-[0_0_0_4px_rgba(31,169,141,0.1)] focus:-translate-y-0.5 focus:scale-[1.02] transition-all duration-300 outline-none placeholder-[var(--primary-600)]"
                     />
                   </div>
-                  <div>
-                    <label htmlFor="jenisKelamin" className="block mb-2 text-sm font-semibold text-[var(--primary-800)]">
+                  <div className="mb-4 relative group">
+                    <label htmlFor="jenisKelamin" className="block mb-2 text-[var(--primary-700)] font-semibold text-base">
                       Jenis Kelamin
                     </label>
                     <select
@@ -225,7 +246,7 @@ const ProfileSetup: React.FC = () => {
                       value={jenisKelamin}
                       onChange={(e) => setJenisKelamin(e.target.value as 'pria' | 'wanita' | '')}
                       required
-                      className="w-full p-4 border-2 border-gray-200 rounded-xl text-[var(--primary-800)] focus:border-[var(--primary-400)] focus:ring-2 focus:ring-[var(--primary-400)]/20 focus:outline-none"
+                      className="w-full p-4 border-2 border-[var(--primary-200)] rounded-2xl bg-[var(--primary-50)] text-base focus:border-[var(--primary-500)] focus:bg-white focus:shadow-[0_0_0_4px_rgba(31,169,141,0.1)] focus:-translate-y-0.5 focus:scale-[1.02] transition-all duration-300 outline-none placeholder-[var(--primary-600)]"
                     >
                       <option value="">Pilih jenis kelamin</option>
                       <option value="pria">Pria</option>
@@ -235,8 +256,8 @@ const ProfileSetup: React.FC = () => {
                 </div>
 
                 <div className="grid grid-cols-2 gap-6">
-                  <div>
-                    <label htmlFor="tinggi" className="block mb-2 text-sm font-semibold text-[var(--primary-800)]">
+                  <div className="mb-4 relative group">
+                    <label htmlFor="tinggi" className="block mb-2 text-[var(--primary-700)] font-semibold text-base">
                       Tinggi Badan (cm)
                     </label>
                     <input
@@ -248,11 +269,11 @@ const ProfileSetup: React.FC = () => {
                       min="100"
                       max="250"
                       placeholder="170"
-                      className="w-full p-4 border-2 border-gray-200 rounded-xl text-[var(--primary-800)] focus:border-[var(--primary-400)] focus:ring-2 focus:ring-[var(--primary-400)]/20 focus:outline-none"
+                      className="w-full p-4 border-2 border-[var(--primary-200)] rounded-2xl bg-[var(--primary-50)] text-base focus:border-[var(--primary-500)] focus:bg-white focus:shadow-[0_0_0_4px_rgba(31,169,141,0.1)] focus:-translate-y-0.5 focus:scale-[1.02] transition-all duration-300 outline-none placeholder-[var(--primary-600)]"
                     />
                   </div>
-                  <div>
-                    <label htmlFor="berat" className="block mb-2 text-sm font-semibold text-[var(--primary-800)]">
+                  <div className="mb-4 relative group">
+                    <label htmlFor="berat" className="block mb-2 text-[var(--primary-700)] font-semibold text-base">
                       Berat Badan (kg)
                     </label>
                     <input
@@ -265,13 +286,13 @@ const ProfileSetup: React.FC = () => {
                       max="200"
                       step="0.1"
                       placeholder="65"
-                      className="w-full p-4 border-2 border-gray-200 rounded-xl text-[var(--primary-800)] focus:border-[var(--primary-400)] focus:ring-2 focus:ring-[var(--primary-400)]/20 focus:outline-none"
+                      className="w-full p-4 border-2 border-[var(--primary-200)] rounded-2xl bg-[var(--primary-50)] text-base focus:border-[var(--primary-500)] focus:bg-white focus:shadow-[0_0_0_4px_rgba(31,169,141,0.1)] focus:-translate-y-0.5 focus:scale-[1.02] transition-all duration-300 outline-none placeholder-[var(--primary-600)]"
                     />
                   </div>
                 </div>
 
-                <div>
-                  <label htmlFor="aktivitas" className="block mb-2 text-sm font-semibold text-[var(--primary-800)]">
+                <div className="mb-4 relative group">
+                  <label htmlFor="aktivitas" className="block mb-2 text-[var(--primary-700)] font-semibold text-base">
                     Tingkat Aktivitas
                   </label>
                   <select
@@ -279,7 +300,7 @@ const ProfileSetup: React.FC = () => {
                     value={aktivitas}
                     onChange={(e) => setAktivitas(e.target.value as 'rendah' | 'sedang' | 'tinggi' | 'sangat_tinggi' | '')}
                     required
-                    className="w-full p-4 border-2 border-gray-200 rounded-xl text-[var(--primary-800)] focus:border-[var(--primary-400)] focus:ring-2 focus:ring-[var(--primary-400)]/20 focus:outline-none"
+                    className="w-full p-4 border-2 border-[var(--primary-200)] rounded-2xl bg-[var(--primary-50)] text-base focus:border-[var(--primary-500)] focus:bg-white focus:shadow-[0_0_0_4px_rgba(31,169,141,0.1)] focus:-translate-y-0.5 focus:scale-[1.02] transition-all duration-300 outline-none placeholder-[var(--primary-600)]"
                   >
                     <option value="">Pilih tingkat aktivitas</option>
                     <option value="rendah">Rendah - Jarang berolahraga, kerja kantoran</option>
@@ -291,26 +312,27 @@ const ProfileSetup: React.FC = () => {
 
                 <button
                   type="submit"
-                  disabled={loading}
-                  className={`w-full p-4 bg-[var(--primary-500)] text-white rounded-xl font-semibold text-lg transition-all duration-200 ${
-                    loading ? 'opacity-60 cursor-not-allowed' : 'hover:bg-[var(--primary-600)] hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0'
-                  } flex items-center justify-center`}
+                  disabled={formLoading}
+                  className={`w-full p-4 bg-gradient-to-r from-[var(--primary-500)] to-[var(--primary-400)] text-white border-none rounded-2xl text-base font-semibold hover:shadow-xl hover:-translate-y-0.5 hover:scale-[1.02] transition-all duration-300 ease-[cubic-bezier(0.175,0.885,0.32,1.275)] relative overflow-hidden group disabled:bg-[var(--primary-700)] flex items-center justify-center`}
                 >
-                  {loading && (
-                    <svg className="animate-spin h-5 w-5 mr-2 text-white" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                  )}
-                  {loading ? 'Menghitung...' : 'Hitung Kalori Harian Saya'}
+                  <span className="relative z-10">
+                    {formLoading && (
+                      <svg className="animate-spin h-5 w-5 mr-2 text-white inline-block" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                    )}
+                    {formLoading ? 'Menghitung...' : 'Hitung Kalori Harian Saya'}
+                  </span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[rgba(255,255,255,0.3)] to-transparent -translate-x-full group-hover:translate-x-full transition-all duration-600"></div>
                 </button>
               </form>
             </>
           ) : (
             <div className="animate-slideInUp">
               <div className="text-center mb-8">
-                <h2 className="text-2xl font-bold text-[var(--primary-800)] mb-2">Hasil Perhitungan</h2>
-                <p className="text-gray-600 text-sm">Berikut adalah kebutuhan kalori harian Anda</p>
+                <h2 className="text-3xl font-bold text-[var(--primary-800)] mb-2">Hasil Perhitungan</h2>
+                <p className="text-[var(--primary-700)] text-base">Berikut adalah kebutuhan kalori harian Anda</p>
               </div>
               <div className="bg-gradient-to-br from-[var(--primary-50)] to-[var(--primary-100)] border-2 border-[var(--primary-200)] rounded-2xl p-6 text-center">
                 <h3 className="text-xl font-semibold text-[var(--primary-800)] mb-3">Kebutuhan Kalori Harian Anda</h3>
@@ -322,9 +344,10 @@ const ProfileSetup: React.FC = () => {
               </div>
               <button
                 onClick={handleGoToDashboard}
-                className="w-full p-4 bg-[var(--primary-500)] text-white rounded-xl font-semibold text-lg transition-all duration-200 hover:bg-[var(--primary-600)] hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center mt-6"
+                className="w-full p-4 bg-gradient-to-r from-[var(--primary-500)] to-[var(--primary-400)] text-white border-none rounded-2xl text-base font-semibold hover:shadow-xl hover:-translate-y-0.5 hover:scale-[1.02] transition-all duration-300 ease-[cubic-bezier(0.175,0.885,0.32,1.275)] relative overflow-hidden group mt-6"
               >
-                Lanjutkan ke Dashboard
+                <span className="relative z-10">Lanjutkan ke Dashboard</span>
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[rgba(255,255,255,0.3)] to-transparent -translate-x-full group-hover:translate-x-full transition-all duration-600"></div>
               </button>
             </div>
           )}

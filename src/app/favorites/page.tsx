@@ -1,11 +1,13 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { Input } from "antd";
-import { CloseCircleOutlined, HeartFilled, DeleteOutlined } from "@ant-design/icons";
+import { CloseCircleOutlined, DeleteOutlined } from "@ant-design/icons";
 import Image from "next/image";
+import { useRouter } from 'next/navigation';
 import Sidebar from "../components/Sidebar";
 import CalorieWaveTracker from "../components/CalorieWaveTracker";
 import { useFavorites, FavoriteRecipe } from "../context/FavoritesContext";
+import { useAuth } from '../context/AuthContext';
 
 const FavoritesPage: React.FC = () => {
   const [searchText, setSearchText] = useState<string>("");
@@ -15,8 +17,18 @@ const FavoritesPage: React.FC = () => {
   const [filteredRecipes, setFilteredRecipes] = useState<FavoriteRecipe[]>([]);
   
   const { favoriteRecipes, removeFromFavorites } = useFavorites();
+  const { user, loading } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login');
+    }
+  }, [user, loading, router]);
+
+  useEffect(() => {
+    if (!user) return;
+
     if (searchText.trim() === "") {
       setFilteredRecipes(favoriteRecipes);
     } else {
@@ -29,7 +41,7 @@ const FavoritesPage: React.FC = () => {
       );
       setFilteredRecipes(filtered);
     }
-  }, [searchText, favoriteRecipes]);
+  }, [searchText, favoriteRecipes, user]);
 
   const handleSearch = () => {
     console.log("Search button clicked with value:", inputText);
@@ -60,7 +72,13 @@ const FavoritesPage: React.FC = () => {
 
       {/* Favorite indicator */}
       <div className="absolute top-3 left-3 z-10">
-        <HeartFilled className="text-red-500 text-lg" />
+        <Image
+          src="/icons/love-filled.png"
+          alt="Favorite"
+          width={24}
+          height={24}
+          className="text-red-500"
+        />
       </div>
 
       <div className="relative h-48 bg-gray-200">
@@ -71,7 +89,6 @@ const FavoritesPage: React.FC = () => {
           objectFit="cover"
           className="transition-transform duration-300 group-hover:scale-105"
           onError={(e) => {
-            // Fallback image jika gambar tidak ditemukan
             (e.target as HTMLImageElement).src = "/bg/header_banner.png";
           }}
         />
@@ -105,6 +122,20 @@ const FavoritesPage: React.FC = () => {
       </div>
     </div>
   );
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-white">
+        <div className="text-center">
+          <svg className="animate-spin h-8 w-8 text-teal-500 mx-auto mb-4" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-white overflow-x-hidden">
@@ -216,13 +247,21 @@ const FavoritesPage: React.FC = () => {
             
             {/* Empty State */}
             {filteredRecipes.length === 0 && favoriteRecipes.length === 0 && (
-              <div className="text-center py-16">
-                <HeartFilled className="text-6xl text-gray-300 mb-4" />
-                <h3 className="text-xl font-semibold text-gray-600 mb-2">No Favorite Recipes Yet</h3>
-                <p className="text-gray-500 mb-4">Start exploring and save your favorite recipes!</p>
-                <button className="bg-teal-500 text-white px-6 py-2 rounded-full hover:bg-teal-600 transition-colors">
-                  Explore Recipes
-                </button>
+              <div className="py-16 flex items-center justify-center min-h-[400px]">
+                <div className="flex flex-col items-center">
+                  <Image
+                    src="/icons/love-filled.png"
+                    alt="No Favorites"
+                    width={48}
+                    height={48}
+                    className="mb-4"
+                  />
+                  <h3 className="text-xl font-semibold text-gray-600 mb-2">No Favorite Recipes Yet</h3>
+                  <p className="text-gray-500 mb-4">Start exploring and save your favorite recipes!</p>
+                  <button className="bg-teal-500 text-white px-6 py-2 rounded-full hover:bg-teal-600 transition-colors">
+                    Explore Recipes
+                  </button>
+                </div>
               </div>
             )}
 

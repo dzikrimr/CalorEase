@@ -4,8 +4,9 @@ import { usePathname, useRouter } from 'next/navigation';
 import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import Chatbot from './Chatbot'; // Adjust path based on your component location
-import { auth } from '../lib/firebase'; // Import Firebase auth
+import { useAuth } from '../context/AuthContext';
 import { signOut } from 'firebase/auth';
+import { auth } from '../lib/firebase';
 
 export const navigation = [
   {
@@ -44,6 +45,7 @@ export const navigation = [
 const Sidebar: React.FC = () => {
   const pathname = usePathname();
   const router = useRouter();
+  const { user } = useAuth();
   const [activeId, setActiveId] = useState<number>(1); // Initialize with Home as default
   const [isChatbotOpen, setIsChatbotOpen] = useState(false);
   const [isChatbotSelected, setIsChatbotSelected] = useState(false);

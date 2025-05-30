@@ -12,6 +12,7 @@
     "@ant-design/icons": "^6.0.0",
     "@chakra-ui/react": "^3.19.1",
     "@emotion/react": "^11.14.0",
+    "@google/generative-ai": "^0.24.1",
     "@mantine/core": "^8.0.1",
     "@mantine/hooks": "^8.0.1",
     "antd": "^5.25.2",

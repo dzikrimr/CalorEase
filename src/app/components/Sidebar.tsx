@@ -3,7 +3,7 @@
 import { usePathname, useRouter } from 'next/navigation';
 import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import Chatbot from './Chatbot'; // Adjust path based on your component location
+import Chatbot from './Chatbot';
 import { useAuth } from '../context/AuthContext';
 import { signOut } from 'firebase/auth';
 import { auth } from '../lib/firebase';
@@ -46,55 +46,55 @@ const Sidebar: React.FC = () => {
   const pathname = usePathname();
   const router = useRouter();
   const { user } = useAuth();
-  const [activeId, setActiveId] = useState<number>(1); // Initialize with Home as default
+  const [activeId, setActiveId] = useState<number>(1);
   const [isChatbotOpen, setIsChatbotOpen] = useState(false);
   const [isChatbotSelected, setIsChatbotSelected] = useState(false);
   const [hasNotification, setHasNotification] = useState(true);
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
   const prevPathRef = useRef<string | null>(null);
+  const prevActiveIdRef = useRef<number>(1); // Store the previous activeId before opening chatbot
 
-  // Function to determine which navigation item should be active based on current path
   const getActiveItemId = (currentPath: string): number => {
-    console.log('Current path:', currentPath); // Debug log
+    console.log('Current path:', currentPath);
     
-    // Check for route patterns first (more specific patterns)
     if (currentPath.startsWith('/recipe/')) {
-      console.log('Recipe detail page - setting Home as active'); // Debug log
-      return 1; // Home (dashboard) should remain active
+      console.log('Recipe detail page - setting Home as active');
+      return 1;
     }
     
-    // Check for exact matches
     const exactMatch = navigation.find((item) => item.link === currentPath);
     if (exactMatch) {
-      console.log('Exact match found:', exactMatch.title); // Debug log
+      console.log('Exact match found:', exactMatch.title);
       return exactMatch.id;
     }
 
-    // Add other route patterns as needed
     if (currentPath.startsWith('/marketplace/')) {
-      return 2; // Marketplace should remain active
+      return 2;
     }
     
     if (currentPath.startsWith('/favorites/')) {
-      return 3; // Favorites should remain active
+      return 3;
     }
     
     if (currentPath.startsWith('/profil/')) {
-      return 5; // Profile should remain active
+      return 5;
     }
 
-    // Default to Home if no match found
-    console.log('No match found - defaulting to Home'); // Debug log
+    console.log('No match found - defaulting to Home');
     return 1;
   };
 
   useEffect(() => {
-    console.log('useEffect triggered, pathname:', pathname); // Debug log
-    const activeItemId = getActiveItemId(pathname);
-    console.log('Setting activeId to:', activeItemId); // Debug log
-    setActiveId(activeItemId);
+    console.log('useEffect triggered, pathname:', pathname);
+    if (!isChatbotOpen) {
+      // Only update activeId based on pathname if chatbot is not open
+      const activeItemId = getActiveItemId(pathname);
+      console.log('Setting activeId to:', activeItemId);
+      setActiveId(activeItemId);
+      prevActiveIdRef.current = activeItemId; // Update prevActiveIdRef when navigating
+    }
     prevPathRef.current = pathname;
-  }, [pathname]);
+  }, [pathname, isChatbotOpen]);
 
   const handleNavClick = (item: typeof navigation[0], e: React.MouseEvent) => {
     if (item.action === 'chatbot') {
@@ -102,37 +102,45 @@ const Sidebar: React.FC = () => {
       setIsChatbotOpen(true);
       setIsChatbotSelected(true);
       setHasNotification(false);
+      prevActiveIdRef.current = activeId; // Store the current activeId before switching to chatbot
+      setActiveId(item.id); // Set activeId to Chatbot's ID (4)
     }
   };
 
   const handleChatToggle = () => {
-    setIsChatbotOpen(!isChatbotOpen);
     if (!isChatbotOpen) {
+      // Opening the chatbot
+      setIsChatbotOpen(true);
       setHasNotification(false);
-      setIsChatbotSelected(true); // Select chatbot when opening
+      setIsChatbotSelected(true);
+      prevActiveIdRef.current = activeId; // Store the current activeId
+      setActiveId(4); // Set activeId to Chatbot's ID (4)
     } else {
-      setIsChatbotSelected(false); // Deselect chatbot when closing
+      // Closing the chatbot
+      setIsChatbotOpen(false);
+      setIsChatbotSelected(false);
+      setActiveId(prevActiveIdRef.current); // Restore the previous activeId
     }
   };
 
   const handleLogoutClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    setIsLogoutDialogOpen(true); // Show confirmation dialog
+    setIsLogoutDialogOpen(true);
   };
 
   const handleConfirmLogout = async () => {
     try {
-      await signOut(auth); // Sign out from Firebase
-      router.push('/login'); // Redirect to login page
+      await signOut(auth);
+      router.push('/login');
     } catch (error: any) {
       console.error('Logout error:', error.message);
     } finally {
-      setIsLogoutDialogOpen(false); // Close dialog
+      setIsLogoutDialogOpen(false);
     }
   };
 
   const handleCancelLogout = () => {
-    setIsLogoutDialogOpen(false); // Close dialog without logging out
+    setIsLogoutDialogOpen(false);
   };
 
   const NavLink = ({
@@ -228,7 +236,6 @@ const Sidebar: React.FC = () => {
         </div>
       </div>
 
-      {/* Logout Confirmation Dialog */}
       {isLogoutDialogOpen && (
         <div className="fixed inset-0 bg-black/50 bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4 shadow-lg">
@@ -256,7 +263,6 @@ const Sidebar: React.FC = () => {
         </div>
       )}
 
-      {/* Chatbot Floating Component */}
       <Chatbot
         isOpen={isChatbotOpen}
         onToggle={handleChatToggle}

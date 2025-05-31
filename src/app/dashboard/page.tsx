@@ -1,14 +1,15 @@
-"use client";
-import React, { useState, useEffect } from "react";
-import { Input } from "antd";
-import { CloseCircleOutlined } from "@ant-design/icons";
-import Image from "next/image";
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { Input } from 'antd';
+import { CloseCircleOutlined } from '@ant-design/icons';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import RecipeCard from "../components/RecipeCard";
-import Sidebar from "../components/Sidebar";
-import CalorieWaveTracker from "../components/CalorieWaveTracker";
+import RecipeCard from '../components/RecipeCard';
+import Sidebar from '../components/Sidebar';
+import RightSidebar from '../components/RightSidebar';
 import { db } from '../lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { useAuth } from '../context/AuthContext';
 
 interface Recipe {
@@ -22,10 +23,8 @@ interface Recipe {
 const HomePage: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
-  const [searchText, setSearchText] = useState<string>("");
-  const [inputText, setInputText] = useState<string>("");
-  const [targetCalories, setTargetCalories] = useState<number>(2500);
-  const [currentCalories, setCurrentCalories] = useState<number>(1500);
+  const [searchText, setSearchText] = useState<string>('');
+  const [inputText, setInputText] = useState<string>('');
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,33 +38,6 @@ const HomePage: React.FC = () => {
       router.push('/login');
     }
   }, [user, authLoading, router]);
-
-  // Fetch user's calorie data from Firestore
-  useEffect(() => {
-    const fetchUserData = async () => {
-      if (!user) return; // Only fetch if user is authenticated
-
-      try {
-        const userDocRef = doc(db, 'users', user.uid);
-        const userDoc = await getDoc(userDocRef);
-        if (userDoc.exists()) {
-          const userData = userDoc.data();
-          setTargetCalories(userData.dailyCalories || 2500);
-          // You can also fetch currentCalories if you store daily intake in Firestore
-          // For now, we'll keep currentCalories as a static value or update it elsewhere
-        } else {
-          console.log('No user data found in Firestore');
-        }
-      } catch (err) {
-        console.error('Error fetching user data from Firestore:', err);
-        setError('Failed to load user data.');
-      }
-    };
-
-    if (!authLoading && user) {
-      fetchUserData();
-    }
-  }, [user, authLoading]);
 
   // Fetch recipes
   useEffect(() => {
@@ -83,7 +55,7 @@ const HomePage: React.FC = () => {
 
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(errorData.error || "Failed to fetch recipes");
+          throw new Error(errorData.error || 'Gagal mengambil resep');
         }
 
         const data = await response.json();
@@ -91,7 +63,7 @@ const HomePage: React.FC = () => {
         setTotalPages(Math.ceil(data.totalResults / recipesPerPage) || 1);
       } catch (err: any) {
         setError(err.message);
-        console.error("Fetch error details:", err);
+        console.error('Fetch error details:', err);
       } finally {
         setLoading(false);
       }
@@ -103,36 +75,52 @@ const HomePage: React.FC = () => {
   }, [searchText, offset, user, authLoading]);
 
   const handleSearch = () => {
-    console.log("Search button clicked with value:", inputText);
+    console.log('Tombol cari diklik dengan nilai:', inputText);
     setSearchText(inputText);
     setOffset(0);
   };
 
   const handleClearSearch = () => {
-    console.log("Clear search clicked");
-    setInputText("");
-    setSearchText("");
+    console.log('Hapus pencarian diklik');
+    setInputText('');
+    setSearchText('');
     setOffset(0);
   };
 
   const handleFirstPage = () => setOffset(0);
-  const handlePrevPage = () =>
-    setOffset((prev) => Math.max(0, prev - recipesPerPage));
+  const handlePrevPage = () => setOffset((prev) => Math.max(0, prev - recipesPerPage));
   const handleNextPage = () =>
-    setOffset((prev) =>
-      Math.min((totalPages - 1) * recipesPerPage, prev + recipesPerPage)
-    );
+    setOffset((prev) => Math.min((totalPages - 1) * recipesPerPage, prev + recipesPerPage));
   const handleLastPage = () => setOffset((totalPages - 1) * recipesPerPage);
+
+  const handleViewPreferences = () => {
+    router.push('/profile');
+  };
 
   if (authLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-white">
         <div className="text-center">
-          <svg className="animate-spin h-8 w-8 text-teal-500 mx-auto mb-4" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          <svg
+            className="animate-spin h-8 w-8 text-teal-500 mx-auto mb-4"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+              fill="none"
+            />
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+            />
           </svg>
-          <p className="text-gray-600">Loading...</p>
+          <p className="text-gray-600">Memuat...</p>
         </div>
       </div>
     );
@@ -151,7 +139,7 @@ const HomePage: React.FC = () => {
             <div className="relative w-full h-full overflow-hidden rounded-bl-3xl rounded-br-3xl">
               <Image
                 src="/bg/header_banner.png"
-                alt="Food Banner"
+                alt="Banner Makanan"
                 layout="fill"
                 objectFit="cover"
                 className="z-0"
@@ -162,33 +150,32 @@ const HomePage: React.FC = () => {
           <div className="absolute top-0 right-0 p-6 text-center z-20 w-40">
             <div
               className="absolute w-55 h-55 bg-[#1FA98D] opacity-50 rounded-full z-0"
-              style={{ top: "-40px", right: "-40px" }}
+              style={{ top: '-40px', right: '-40px' }}
             ></div>
-            <div className="relative text-white mb-2">More Than</div>
-            <div className="relative text-white text-4xl font-bold mb-2">
-              2850+
-            </div>
-            <div className="relative text-white">Healthy Recipe</div>
+            <div className="relative text-white mb-2">Lebih Dari</div>
+            <div className="relative text-white text-4xl font-bold mb-2">2850+</div>
+            <div className="relative text-white">Resep Sehat</div>
           </div>
           <div className="absolute inset-0 flex flex-col justify-center px-8 z-20">
             <h1 className="text-white text-3xl font-bold mb-1 text-center">
-              Hello, {user.displayName || "User"}
+              Halo, {user.displayName || 'Pengguna'}
             </h1>
             <p className="text-white text-xl mb-1 text-center">
-              Let's make good food choices today!
+              Ayo buat pilihan makanan yang baik hari ini!
             </p>
             <p className="text-white flex justify-center">
-              Stay on track with{" "}
-              <span className="text-[#1FA98D] mx-1 text-center">
-                your nutrition
-              </span>
-              <span role="img" aria-label="healthy">
+              Tetap terjaga dengan{' '}
+              <span className="text-[#1FA98D] mx-1 text-center">nutrisi Anda</span>
+              <span role="img" aria-label="sehat">
                 🥗
               </span>
             </p>
             <div className="flex justify-center w-full mt-4">
-              <button className="bg-teal-500 text-white px-4 py-2 rounded-full w-60 flex items-center justify-center">
-                View Your Preferences
+              <button
+                onClick={handleViewPreferences}
+                className="bg-teal-500 text-white px-4 py-2 rounded-full w-60 flex items-center justify-center"
+              >
+                Lihat Preferensi Anda
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="16"
@@ -212,13 +199,13 @@ const HomePage: React.FC = () => {
             <div className="mb-8">
               <div className="relative">
                 <Input
-                  placeholder="Input text here"
+                  placeholder="Masukkan teks di sini"
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}
                   style={{
-                    height: "45px",
-                    borderRadius: "8px",
-                    paddingRight: "80px",
+                    height: '45px',
+                    borderRadius: '8px',
+                    paddingRight: '80px',
                   }}
                 />
                 {(inputText || searchText) && (
@@ -226,9 +213,9 @@ const HomePage: React.FC = () => {
                     <CloseCircleOutlined
                       onClick={handleClearSearch}
                       style={{
-                        fontSize: "20px",
-                        color: "#aaa",
-                        cursor: "pointer",
+                        fontSize: '20px',
+                        color: '#aaa',
+                        cursor: 'pointer',
                       }}
                     />
                   </div>
@@ -237,21 +224,21 @@ const HomePage: React.FC = () => {
                   className="absolute right-0 top-0 h-full bg-teal-500 text-white px-6 rounded-r-lg flex items-center"
                   onClick={handleSearch}
                 >
-                  <span>Search</span>
+                  <span>Cari</span>
                 </button>
               </div>
             </div>
-            {loading && <div className="text-center">Loading recipes...</div>}
+            {loading && <div className="text-center">Memuat resep...</div>}
             {error && <div className="text-center text-red-500">{error}</div>}
             {!loading && !error && recipes.length === 0 && (
-              <div className="text-center">No recipes found.</div>
+              <div className="text-center">Tidak ada resep ditemukan.</div>
             )}
             {!loading && !error && recipes.length > 0 && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 max-w-[1200px] mx-auto">
                 {recipes.map((recipe, index) => (
                   <RecipeCard
-                    key={recipe.id || index} // Use recipe ID as key
-                    id={recipe.id} // Pass the ID to RecipeCard
+                    key={recipe.id || index}
+                    id={recipe.id}
                     title={recipe.title}
                     description={recipe.description}
                     categories={recipe.categories}
@@ -261,105 +248,15 @@ const HomePage: React.FC = () => {
               </div>
             )}
           </div>
-          <div className="w-30 bg-teal-100 p-6 rounded-3xl mt-4 mb-4 flex flex-col">
-            <div className="flex-grow">
-              <div className="mt-6 mb-6">
-                <CalorieWaveTracker
-                  current={targetCalories}
-                  target={targetCalories}
-                  size={64}
-                  label="Calorie Target"
-                />
-              </div>
-              <div className="mb-6">
-                <CalorieWaveTracker
-                  current={currentCalories}
-                  target={targetCalories}
-                  size={64}
-                  label="Today's Calories"
-                />
-              </div>
-              <div className="mb-0">
-                <CalorieWaveTracker
-                  current={targetCalories - currentCalories}
-                  target={targetCalories}
-                  size={64}
-                  label="Calories Left"
-                />
-              </div>
-              <div className="mt-32">
-                <div className="flex flex-col items-center gap-4">
-                  <button
-                    onClick={handleFirstPage}
-                    disabled={offset === 0}
-                    className={`w-8 h-8 flex items-center justify-center rounded-full border border-gray-200 p-0 disabled:opacity-50 ${
-                      offset === 0 ? "" : "cursor-pointer hover:bg-[#A5DDD1]"
-                    } transition-colors duration-200`}
-                  >
-                    <Image
-                      src="/icons/previous_arrow.png"
-                      alt="First Page"
-                      width={32}
-                      height={32}
-                      className="object-contain"
-                    />
-                  </button>
-                  <button
-                    onClick={handlePrevPage}
-                    disabled={offset === 0}
-                    className={`w-10 h-10 flex items-center justify-center rounded-full border border-gray-200 p-0 disabled:opacity-50 ${
-                      offset === 0 ? "" : "cursor-pointer hover:bg-[#A5DDD1]"
-                    } transition-colors duration-200`}
-                  >
-                    <Image
-                      src="/icons/start_arrow.png"
-                      alt="Previous Page"
-                      width={40}
-                      height={40}
-                      className="object-contain"
-                    />
-                  </button>
-                  <div className="text-gray-600 text-sm">
-                    {Math.floor(offset / recipesPerPage) + 1} of {totalPages}
-                  </div>
-                  <button
-                    onClick={handleNextPage}
-                    disabled={offset >= (totalPages - 1) * recipesPerPage}
-                    className={`w-10 h-10 flex items-center justify-center rounded-full border border-gray-200 p-0 disabled:opacity-50 ${
-                      offset >= (totalPages - 1) * recipesPerPage
-                        ? ""
-                        : "cursor-pointer hover:bg-[#A5DDD1]"
-                    } transition-colors duration-200`}
-                  >
-                    <Image
-                      src="/icons/last_arrow.png"
-                      alt="Next Page"
-                      width={40}
-                      height={40}
-                      className="object-contain"
-                    />
-                  </button>
-                  <button
-                    onClick={handleLastPage}
-                    disabled={offset >= (totalPages - 1) * recipesPerPage}
-                    className={`w-8 h-8 flex items-center justify-center rounded-full border border-gray-200 p-0 disabled:opacity-50 ${
-                      offset >= (totalPages - 1) * recipesPerPage
-                        ? ""
-                        : "cursor-pointer hover:bg-[#A5DDD1]"
-                    } transition-colors duration-200`}
-                  >
-                    <Image
-                      src="/icons/next_arrow.png"
-                      alt="Last Page"
-                      width={32}
-                      height={32}
-                      className="object-contain"
-                    />
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
+          <RightSidebar
+            offset={offset}
+            totalPages={totalPages}
+            recipesPerPage={recipesPerPage}
+            onFirstPage={handleFirstPage}
+            onPrevPage={handlePrevPage}
+            onNextPage={handleNextPage}
+            onLastPage={handleLastPage}
+          />
         </div>
       </div>
     </div>

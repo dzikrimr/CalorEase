@@ -1,10 +1,11 @@
-"use client";
+'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
 import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import Chatbot from './Chatbot';
 import { useAuth } from '../context/AuthContext';
+import { useChatbot } from '../context/ChatbotContext';
 import { signOut } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 
@@ -37,7 +38,7 @@ export const navigation = [
   {
     id: 5,
     title: 'Profile',
-    link: '/profil',
+    link: '/profile',
     icon: '/icons/user_ic.png',
   },
 ];
@@ -46,38 +47,40 @@ const Sidebar: React.FC = () => {
   const pathname = usePathname();
   const router = useRouter();
   const { user } = useAuth();
+  const { isOpen: isChatbotOpen, toggleChatbot } = useChatbot();
   const [activeId, setActiveId] = useState<number>(1);
-  const [isChatbotOpen, setIsChatbotOpen] = useState(false);
   const [isChatbotSelected, setIsChatbotSelected] = useState(false);
   const [hasNotification, setHasNotification] = useState(true);
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
   const prevPathRef = useRef<string | null>(null);
   const prevActiveIdRef = useRef<number>(1); // Store the previous activeId before opening chatbot
 
+  // Determine which navigation item is active
   const getActiveItemId = (currentPath: string): number => {
     console.log('Current path:', currentPath);
-    
+
+    // Handle recipe detail page
     if (currentPath.startsWith('/recipe/')) {
       console.log('Recipe detail page - setting Home as active');
-      return 1;
+      return 1; // Home (dashboard) remains active
     }
-    
+
+    // Exact matches
     const exactMatch = navigation.find((item) => item.link === currentPath);
     if (exactMatch) {
       console.log('Exact match found:', exactMatch.title);
       return exactMatch.id;
     }
 
-    if (currentPath.startsWith('/marketplace/')) {
-      return 2;
+    // Other route patterns
+    if (currentPath.startsWith('/menu/food/')) {
+      return 2; // Marketplace
     }
-    
     if (currentPath.startsWith('/favorites/')) {
-      return 3;
+      return 3; // Favorites
     }
-    
-    if (currentPath.startsWith('/profil/')) {
-      return 5;
+    if (currentPath.startsWith('/profile/')) {
+      return 5; // Profile
     }
 
     console.log('No match found - defaulting to Home');
@@ -92,6 +95,7 @@ const Sidebar: React.FC = () => {
       console.log('Setting activeId to:', activeItemId);
       setActiveId(activeItemId);
       prevActiveIdRef.current = activeItemId; // Update prevActiveIdRef when navigating
+      setIsChatbotSelected(false); // Ensure chatbot is not selected when navigating
     }
     prevPathRef.current = pathname;
   }, [pathname, isChatbotOpen]);
@@ -99,27 +103,28 @@ const Sidebar: React.FC = () => {
   const handleNavClick = (item: typeof navigation[0], e: React.MouseEvent) => {
     if (item.action === 'chatbot') {
       e.preventDefault();
-      setIsChatbotOpen(true);
-      setIsChatbotSelected(true);
-      setHasNotification(false);
-      prevActiveIdRef.current = activeId; // Store the current activeId before switching to chatbot
+      toggleChatbot(); // Toggle global chatbot
+      setIsChatbotSelected(true); // Select chatbot
+      setHasNotification(false); // Clear notification
+      prevActiveIdRef.current = activeId; // Store the current activeId before switching
       setActiveId(item.id); // Set activeId to Chatbot's ID (4)
     }
   };
 
   const handleChatToggle = () => {
+    toggleChatbot(); // Toggle global chatbot
     if (!isChatbotOpen) {
       // Opening the chatbot
-      setIsChatbotOpen(true);
       setHasNotification(false);
       setIsChatbotSelected(true);
       prevActiveIdRef.current = activeId; // Store the current activeId
       setActiveId(4); // Set activeId to Chatbot's ID (4)
     } else {
       // Closing the chatbot
-      setIsChatbotOpen(false);
       setIsChatbotSelected(false);
-      setActiveId(prevActiveIdRef.current); // Restore the previous activeId
+      const activeItemId = getActiveItemId(pathname); // Recalculate based on current path
+      setActiveId(activeItemId); // Restore to the active page
+      prevActiveIdRef.current = activeItemId; // Update prevActiveIdRef
     }
   };
 

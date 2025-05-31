@@ -3,6 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { FavoritesProvider } from "./context/FavoritesContext";
 import { AuthProvider } from "./context/AuthContext";
+import { ChatbotProvider } from './context/ChatbotContext';
+import Chatbot from './components/Chatbot';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,7 +27,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <AuthProvider>
           <FavoritesProvider>
+            <ChatbotProvider>
             {children}
+            </ChatbotProvider>
           </FavoritesProvider>
         </AuthProvider>
       </body>

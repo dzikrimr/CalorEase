@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation';
 import Sidebar from '../components/Sidebar';
 import CustomDropdown from '../components/CustomDropdown';
 import { auth, db } from '../lib/firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, getDocs, deleteDoc } from 'firebase/firestore';
+import { addDoc as firestoreAddDoc } from 'firebase/firestore';
 
 interface ProfileData {
   name: string;
@@ -18,18 +19,13 @@ interface ProfileData {
 }
 
 interface Recipe {
-  id: number;
+  docId: string; // Unique Firestore document ID
+  recipeId: string; // Recipe ID from API
   name: string;
   calories: number;
+  date?: string;
+  timestamp?: string;
 }
-
-const initialRecipes: Recipe[] = [
-  { id: 1, name: "Nama Resep", calories: 300 },
-  { id: 2, name: "Nama Resep", calories: 300 },
-  { id: 3, name: "Nama Resep", calories: 300 },
-  { id: 4, name: "Nama Resep", calories: 300 },
-  { id: 5, name: "Nama Resep", calories: 300 },
-];
 
 const genderOptions = [
   { value: 'pria', label: 'Pria' },
@@ -53,7 +49,9 @@ const ProfilePage: React.FC = () => {
     gender: '',
     activityLevel: '',
   });
-  const [recipes, setRecipes] = useState<Recipe[]>(initialRecipes);
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [tempRecipes, setTempRecipes] = useState<Recipe[]>([]);
+  const [tempTotalCalories, setTempTotalCalories] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -71,9 +69,9 @@ const ProfilePage: React.FC = () => {
       try {
         const userDocRef = doc(db, 'users', user.uid);
         const userDoc = await getDoc(userDocRef);
+        let currentCalories = 0;
         if (userDoc.exists()) {
           const data = userDoc.data();
-          console.log('Fetched Firestore data:', data); // Debugging
           setProfileData({
             name: data.nama || '',
             age: data.umur ? data.umur.toString() : '',
@@ -82,17 +80,28 @@ const ProfilePage: React.FC = () => {
             gender: data.jenisKelamin || '',
             activityLevel: data.aktivitas || '',
           });
-          console.log('Updated profileData:', {
-            name: data.nama || '',
-            age: data.umur ? data.umur.toString() : '',
-            weight: data.berat ? data.berat.toString() : '',
-            height: data.tinggi ? data.tinggi.toString() : '',
-            gender: data.jenisKelamin || '',
-            activityLevel: data.aktivitas || '',
-          }); // Debugging
-        } else {
-          setError('Data profil belum tersedia. Silakan lengkapi profil Anda.');
+          currentCalories = data.currentCalories || 0;
         }
+
+        // Fetch consumed recipes from dailyIntake subcollection
+        const dailyIntakeRef = collection(db, `users/${user.uid}/dailyIntake`);
+        const querySnapshot = await getDocs(dailyIntakeRef);
+        const fetchedRecipes: Recipe[] = [];
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          fetchedRecipes.push({
+            docId: doc.id, // Use Firestore document ID
+            recipeId: data.recipeId,
+            name: data.name,
+            calories: data.calories,
+            date: data.date,
+            timestamp: data.timestamp,
+          });
+        });
+
+        setRecipes(fetchedRecipes);
+        setTempRecipes(fetchedRecipes);
+        setTempTotalCalories(currentCalories);
       } catch (err: any) {
         setError('Gagal memuat data profil: ' + (err.message || 'Terjadi kesalahan.'));
       } finally {
@@ -109,6 +118,20 @@ const ProfilePage: React.FC = () => {
       ...prev,
       [name]: value,
     }));
+  };
+
+  const handleDeleteRecipe = (docId: string) => {
+    const deletedRecipe = tempRecipes.find((recipe) => recipe.docId === docId);
+    if (!deletedRecipe) return;
+    const updatedRecipes = tempRecipes.filter((recipe) => recipe.docId !== docId);
+    const newTotalCalories = tempTotalCalories - deletedRecipe.calories;
+    setTempRecipes(updatedRecipes);
+    setTempTotalCalories(Math.max(0, newTotalCalories)); // Prevent negative calories
+  };
+
+  const handleClearAll = () => {
+    setTempRecipes([]);
+    setTempTotalCalories(0);
   };
 
   const handleSave = async () => {
@@ -135,6 +158,27 @@ const ProfilePage: React.FC = () => {
     }
 
     try {
+      const userDocRef = doc(db, 'users', user.uid);
+      const dailyIntakeRef = collection(db, `users/${user.uid}/dailyIntake`);
+
+      // Delete all existing documents in dailyIntake
+      const querySnapshot = await getDocs(dailyIntakeRef);
+      const deletePromises = querySnapshot.docs.map((doc) => deleteDoc(doc.ref));
+      await Promise.all(deletePromises);
+
+      // Add tempRecipes to dailyIntake
+      const addPromises = tempRecipes.map((recipe) =>
+        firestoreAddDoc(dailyIntakeRef, {
+          recipeId: recipe.recipeId,
+          name: recipe.name,
+          calories: recipe.calories,
+          date: recipe.date || new Date().toISOString().split('T')[0],
+          timestamp: recipe.timestamp || new Date().toISOString(),
+        })
+      );
+      await Promise.all(addPromises);
+
+      // Update user document with profile data and total calories
       const userData = {
         nama: profileData.name,
         umur: parseInt(profileData.age) || 0,
@@ -142,13 +186,16 @@ const ProfilePage: React.FC = () => {
         tinggi: parseInt(profileData.height) || 0,
         jenisKelamin: profileData.gender,
         aktivitas: profileData.activityLevel,
+        currentCalories: tempTotalCalories,
         updatedAt: new Date().toISOString(),
       };
 
-      await setDoc(doc(db, 'users', user.uid), userData, { merge: true });
-      setSuccess('Data profil berhasil disimpan!');
+      await setDoc(userDocRef, userData, { merge: true });
+      setRecipes(tempRecipes);
+      setSuccess('Data profil dan konsumsi berhasil disimpan!');
     } catch (err: any) {
-      setError('Gagal menyimpan data profil: ' + (err.message || 'Terjadi kesalahan.'));
+      setError('Gagal menyimpan data: ' + (err.message || 'Terjadi kesalahan.'));
+      console.error('Save error:', err);
     }
   };
 
@@ -176,6 +223,26 @@ const ProfilePage: React.FC = () => {
           gender: data.jenisKelamin || '',
           activityLevel: data.aktivitas || '',
         });
+
+        // Fetch original recipes from dailyIntake
+        const dailyIntakeRef = collection(db, `users/${user.uid}/dailyIntake`);
+        const querySnapshot = await getDocs(dailyIntakeRef);
+        const fetchedRecipes: Recipe[] = [];
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          fetchedRecipes.push({
+            docId: doc.id,
+            recipeId: data.recipeId,
+            name: data.name,
+            calories: data.calories,
+            date: data.date,
+            timestamp: data.timestamp,
+          });
+        });
+
+        setRecipes(fetchedRecipes);
+        setTempRecipes(fetchedRecipes);
+        setTempTotalCalories(data.currentCalories || 0);
       } else {
         setProfileData({
           name: '',
@@ -185,22 +252,15 @@ const ProfilePage: React.FC = () => {
           gender: '',
           activityLevel: '',
         });
+        setRecipes([]);
+        setTempRecipes([]);
+        setTempTotalCalories(0);
         setError('Data profil belum tersedia. Silakan lengkapi profil Anda.');
       }
     } catch (err: any) {
       setError('Gagal memuat data profil: ' + (err.message || 'Terjadi kesalahan.'));
     }
   };
-
-  const handleDeleteRecipe = (id: number) => {
-    setRecipes((prev) => prev.filter((recipe) => recipe.id !== id));
-  };
-
-  const handleClearAll = () => {
-    setRecipes([]);
-  };
-
-  const totalCalories = recipes.reduce((sum, recipe) => sum + recipe.calories, 0);
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -301,10 +361,7 @@ const ProfilePage: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label
-                    id="gender-label"
-                    className="block text-md font-medium text-gray-700 mb-2"
-                  >
+                  <label id="gender-label" className="block text-md font-medium text-gray-700 mb-2">
                     Jenis Kelamin
                   </label>
                   <CustomDropdown
@@ -316,10 +373,7 @@ const ProfilePage: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label
-                    id="activityLevel-label"
-                    className="block text-md font-medium text-gray-700 mb-2"
-                  >
+                  <label id="activityLevel-label" className="block text-md font-medium text-gray-700 mb-2">
                     Tingkat Aktivitas
                   </label>
                   <CustomDropdown
@@ -355,15 +409,14 @@ const ProfilePage: React.FC = () => {
             <div className="mb-6">
               <h2 className="text-xl font-semibold text-gray-800 mb-2">Resep Terkonsumsi</h2>
               <p className="text-gray-600">
-                Pantau konsumsi harian Anda, termasuk daftar resep yang telah dikonsumsi, jumlah kalori per resep, dan total kalori hari ini.
-                Data akan direset otomatis setiap hari.
+                Pantau konsumsi harian Anda, termasuk daftar resep yang telah dikonsumsi, jumlah kalori per resep, dan
+                total kalori hari ini. Data akan direset otomatis setiap hari.
               </p>
               <hr className="border-t-2 border-teal-400 my-4" />
             </div>
             <div className="flex justify-between items-center mb-6">
               <p className="text-lg text-gray-700">
-                Total Kalori Hari Ini:{' '}
-                <span className="font-bold">{totalCalories} kkal</span>
+                Total Kalori Hari Ini: <span className="font-bold">{tempTotalCalories} kkal</span>
               </p>
               <button
                 onClick={handleClearAll}
@@ -374,15 +427,15 @@ const ProfilePage: React.FC = () => {
             </div>
             <p className="text-md text-gray-700 mb-4">Daftar resep yang sudah dikonsumsi hari ini</p>
             <div className="space-y-3">
-              {recipes.length === 0 ? (
+              {tempRecipes.length === 0 ? (
                 <div className="text-center py-12 text-gray-500">
                   <p className="text-lg mb-2">Belum ada resep yang dikonsumsi hari ini</p>
                   <p className="text-sm">Mulai tambahkan resep untuk melacak kalori harian Anda</p>
                 </div>
               ) : (
-                recipes.map((recipe) => (
+                tempRecipes.map((recipe) => (
                   <div
-                    key={recipe.id}
+                    key={recipe.docId}
                     className="p-4 border border-teal-500 bg-white rounded-md shadow-sm hover:bg-[#A5DDD7] transition-colors"
                   >
                     <div className="flex justify-between items-center">
@@ -391,7 +444,7 @@ const ProfilePage: React.FC = () => {
                         <p className="text-gray-600 text-md">{recipe.calories} kkal</p>
                       </div>
                       <button
-                        onClick={() => handleDeleteRecipe(recipe.id)}
+                        onClick={() => handleDeleteRecipe(recipe.docId)}
                         className="p-2 text-red-400 hover:bg-red-50 rounded-md transition-colors"
                         aria-label="Delete recipe"
                         title="Hapus resep"

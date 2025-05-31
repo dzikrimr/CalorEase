@@ -1,5 +1,6 @@
 import Head from 'next/head';
 import Image from 'next/image';
+import Link from 'next/link';
 
 const HomePage: React.FC = () => {
   return (
@@ -20,12 +21,12 @@ const HomePage: React.FC = () => {
               Discover an array of healthy recipes, manage, and achieve desired wellness outcomes.
             </p>
             <div className="flex space-x-4">
-              <button className="bg-[#1FA98D] text-white px-8 py-3 rounded-full text-lg font-semibold hover:bg-[#1A4D4A] transition-colors">
-                Try Now for Free
-              </button>
-              <button className="border border-[#1FA98D] text-[#1FA98D] px-8 py-3 rounded-full text-lg font-semibold hover:bg-[#E0F2F1] hover:text-[#1A4D4A] transition-colors">
-                Login/Register
-              </button>
+              <Link href="/dashboard">
+                <button className="bg-gradient-to-r from-[#1FA98D] to-[#26C6AA] text-white px-8 py-3 rounded-full text-lg font-semibold hover:shadow-xl hover:-translate-y-0.5 hover:scale-[1.02] transition-all duration-300 ease-[cubic-bezier(0.175,0.885,0.32,1.275)] relative overflow-hidden group">
+                  <span className="relative z-10">Try Now for Free</span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[rgba(255,255,255,0.3)] to-transparent -translate-x-full group-hover:translate-x-full transition-all duration-600"></div>
+                </button>
+              </Link>
             </div>
           </div>
           <div className="image-content lg:w-1/2 p-4 mt-8 lg:mt-0">

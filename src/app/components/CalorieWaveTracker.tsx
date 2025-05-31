@@ -1,7 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
 
-// Define props interface for CalorieWaveTracker
 interface CalorieWaveTrackerProps {
   current: number;
   target: number;
@@ -9,7 +8,6 @@ interface CalorieWaveTrackerProps {
   label: string;
 }
 
-// CalorieWaveTracker Component
 const CalorieWaveTracker: React.FC<CalorieWaveTrackerProps> = ({ current, target, size = 64, label }) => {
   const [animatedPercentage, setAnimatedPercentage] = useState(0);
 
@@ -23,7 +21,7 @@ const CalorieWaveTracker: React.FC<CalorieWaveTrackerProps> = ({ current, target
 
   // Add wave bob animation CSS
   useEffect(() => {
-    const style = document.createElement('style');
+    const style = document.createElement("style");
     style.textContent = `
       @keyframes waveBob {
         0%, 100% { transform: translateY(0); }
@@ -39,9 +37,9 @@ const CalorieWaveTracker: React.FC<CalorieWaveTrackerProps> = ({ current, target
     };
   }, []);
 
-  // Determine if over 3000 calories
-  const isOverLimit = current > 2500;
-  const waveColor = isOverLimit ? '#ef4444' : '#0d9488';
+  // Determine if current calories exceed target
+  const isOverLimit = current > target;
+  const waveColor = isOverLimit ? "#ef4444" : "#0d9488";
 
   // Calculate wave fill height
   const fillHeight = (animatedPercentage / 100) * (size - 8);
@@ -61,29 +59,25 @@ const CalorieWaveTracker: React.FC<CalorieWaveTrackerProps> = ({ current, target
       <div className="text-center mb-2 text-teal-800 text-sm font-medium">
         {label}
       </div>
-      
-      <div 
+
+      <div
         className="relative rounded-full border-2 border-gray-200 overflow-hidden mx-auto bg-white"
         style={{ width: size, height: size }}
       >
         {/* Wave fill with static wavy shape using SVG and subtle up-down animation */}
         <svg
           width={size}
-          height={size + 10} 
-          style={{ 
-            position: 'absolute', 
-            bottom: -5, 
-            left: 0, 
-            animation: 'waveBob 2s ease-in-out infinite' 
+          height={size + 10}
+          style={{
+            position: "absolute",
+            bottom: -5,
+            left: 0,
+            animation: "waveBob 2s ease-in-out infinite",
           }}
         >
-          <path
-            d={wavePath}
-            fill={waveColor}
-            opacity="0.4"
-          />
+          <path d={wavePath} fill={waveColor} opacity="0.4" />
         </svg>
-        
+
         {/* Circular mask */}
         <div
           className="absolute inset-0 rounded-full"
@@ -91,17 +85,17 @@ const CalorieWaveTracker: React.FC<CalorieWaveTrackerProps> = ({ current, target
             background: `radial-gradient(circle, transparent 70%, white 71%)`,
           }}
         />
-        
+
         {/* Center text */}
         <div className="absolute inset-0 flex items-center justify-center z-10">
-          <div 
-            className={`font-bold text-sm ${isOverLimit ? 'text-red-600' : 'text-teal-700'}`}
-            style={{ textShadow: '0 0 3px rgba(255,255,255,0.8)' }}
+          <div
+            className={`font-bold text-sm ${isOverLimit ? "text-red-600" : "text-teal-700"}`}
+            style={{ textShadow: "0 0 3px rgba(255,255,255,0.8)" }}
           >
-            {current}
+            {Math.round(current)}
           </div>
         </div>
-        
+
         {/* Overflow indicator */}
         {isOverLimit && (
           <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full z-20">

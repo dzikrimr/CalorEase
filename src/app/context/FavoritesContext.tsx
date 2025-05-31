@@ -18,7 +18,7 @@ export interface FavoriteRecipe {
 interface FavoritesContextType {
   favoriteRecipes: FavoriteRecipe[];
   addToFavorites: (recipe: Omit<FavoriteRecipe, 'id' | 'dateAdded' | 'userId'>) => Promise<void>;
-  removeFromFavorites: (recipeId: string) => Promise<void>;
+  removeFromFavorites: (recipeId: string) => Promise<string | void>;
   isFavorite: (title: string) => boolean;
   getFavoriteByTitle: (title: string) => FavoriteRecipe | undefined;
 }
@@ -83,13 +83,22 @@ export const FavoritesProvider: React.FC<{ children: ReactNode }> = ({ children 
   };
 
   const removeFromFavorites = async (recipeId: string) => {
-    if (!user) return;
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
 
     try {
       await deleteDoc(doc(db, 'favorites', recipeId));
-    } catch (error) {
+      console.log('Favorite removed successfully:', recipeId);
+    } catch (error: any) {
       console.error('Error removing from favorites:', error);
-      throw error;
+      if (error.code === 'permission-denied') {
+        throw new Error('Anda tidak memiliki izin untuk menghapus favorit ini.');
+      } else if (error.code === 'not-found') {
+        throw new Error('Resep favorit tidak ditemukan.');
+      } else {
+        throw new Error('Gagal menghapus favorit. Silakan coba lagi.');
+      }
     }
   };
 

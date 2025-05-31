@@ -29,16 +29,15 @@ const Chatbot: React.FC<ChatbotProps> = ({ isOpen, onToggle, hasNotification = f
   const [inputMessage, setInputMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [quickActionsVisible, setQuickActionsVisible] = useState(true);
-  const [error, setError] = useState<string | null>(null); // Add error state for UI feedback
+  const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Initialize Gemini API
   const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
   if (!apiKey) {
     console.error("Gemini API key is missing. Please set NEXT_PUBLIC_GEMINI_API_KEY in your .env file.");
   }
   const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
-  const model = genAI ? genAI.getGenerativeModel({ model: "gemini-1.5-flash" }) : null; // Use a free-tier-compatible model
+  const model = genAI ? genAI.getGenerativeModel({ model: "gemini-1.5-flash" }) : null;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -85,16 +84,12 @@ const Chatbot: React.FC<ChatbotProps> = ({ isOpen, onToggle, hasNotification = f
   const handleSendMessage = async () => {
     if (!inputMessage.trim()) return;
 
-    // Add user message
     addMessage(inputMessage, "user");
     const userMsg = inputMessage;
     setInputMessage("");
     setError(null);
 
-    // Show typing indicator
     setIsTyping(true);
-
-    // Get Gemini response
     const botResponse = await getGeminiResponse(userMsg);
     setIsTyping(false);
     addMessage(botResponse, "bot");
@@ -119,9 +114,6 @@ const Chatbot: React.FC<ChatbotProps> = ({ isOpen, onToggle, hasNotification = f
 
   const TypingIndicator = () => (
     <div className="flex items-start gap-3 mb-4 animate-fadeIn">
-      <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-teal-200 to-teal-300 rounded-full flex items-center justify-center text-sm">
-        🤖
-      </div>
       <div className="bg-gradient-to-r from-teal-50 to-teal-100 rounded-2xl rounded-bl-md px-4 py-3 max-w-xs">
         <div className="flex gap-1">
           <div className="w-2 h-2 bg-teal-500 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></div>
@@ -183,13 +175,8 @@ const Chatbot: React.FC<ChatbotProps> = ({ isOpen, onToggle, hasNotification = f
             {messages.map((message) => (
               <div
                 key={message.id}
-                className={`flex ${message.sender === "user" ? "justify-end" : "items-start gap-3"} animate-fadeIn`}
+                className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"} animate-fadeIn`} // Adjusted alignment
               >
-                {message.sender === "bot" && (
-                  <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-teal-200 to-teal-300 rounded-full flex items-center justify-center text-sm">
-                    🤖
-                  </div>
-                )}
                 <div
                   className={`max-w-xs px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-line ${
                     message.sender === "user"

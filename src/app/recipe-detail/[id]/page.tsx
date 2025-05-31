@@ -647,20 +647,6 @@ const RecipeDetailPage: React.FC = () => {
           </div>
         </div>
       </div>
-      <style jsx>{`
-        @keyframes bounce-horizontal {
-          0%,
-          100% {
-            transform: translateX(0px);
-          }
-          50% {
-            transform: translateX(4px);
-          }
-        }
-        .animate-bounce-horizontal {
-          animation: bounce-horizontal 1s ease-in-out infinite;
-        }
-      `}</style>
     </div>
   );
 };

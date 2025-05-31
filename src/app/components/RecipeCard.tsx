@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useFavorites } from "app/context/FavoritesContext";
 
 interface RecipeCardProps {
-  id?: string | number; // Add ID prop for navigation
+  id?: string | number;
   title: string;
   description: string;
   categories: string[];
@@ -31,10 +31,10 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
   };
 
   const getDisplayCategories = () => {
-    const maxWidth = 250; // Approximate container width minus padding
-    const baseWidth = 40; // Base width for padding, border, etc per badge
-    const charWidth = 6; // Approximate character width
-    const dotsBadgeWidth = 50; // Width for "..." badge
+    const maxWidth = 250; 
+    const baseWidth = 40; 
+    const charWidth = 6; 
+    const dotsBadgeWidth = 50;
     
     let totalWidth = 0;
     let displayCategories = [];
@@ -81,7 +81,11 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
           await removeFromFavorites(favoriteRecipe.id);
         }
       } else {
+        if (!id) {
+          throw new Error("Recipe ID is undefined");
+        }
         await addToFavorites({
+          recipeId: id.toString(), // Pass the original Spoonacular recipe ID
           title,
           description: cleanDescription,
           categories,
@@ -96,10 +100,10 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
     }
   };
 
-const handleCardClick = () => {
+  const handleCardClick = () => {
     if (id) {
       console.log("Navigating to recipe ID:", id);
-      router.push(`/recipe-detail/${id}`); // Changed from /recipe/ to /recipe-detail/
+      router.push(`/recipe-detail/${id}`); // Updated to match route /recipe/[id]
     } else {
       console.error("Recipe ID is undefined");
     }

@@ -270,7 +270,7 @@ const ProfilePage: React.FC = () => {
         <div className="mb-8">
           <div className="border-b-2 border-gray-200 flex">
             <button
-              className={`px-6 py-4 text-lg font-medium border-b-2 transition-colors ${
+              className={`px-6 py-4 text-lg font-medium border-b-2 transition-colors cursor-pointer ${
                 activeTab === 'account'
                   ? 'border-teal-400 text-teal-500'
                   : 'border-transparent text-gray-600 hover:text-teal-500'
@@ -280,7 +280,7 @@ const ProfilePage: React.FC = () => {
               Akun Saya
             </button>
             <button
-              className={`px-6 py-4 text-lg font-medium border-b-2 transition-colors ${
+              className={`px-6 py-4 text-lg font-medium border-b-2 transition-colors cursor-pointer ${
                 activeTab === 'consumption'
                   ? 'border-teal-400 text-teal-500'
                   : 'border-transparent text-gray-600 hover:text-teal-500'
@@ -389,14 +389,14 @@ const ProfilePage: React.FC = () => {
             <div className="flex gap-4 mt-20">
               <button
                 onClick={handleSave}
-                className="px-8 py-3 bg-teal-500 text-white rounded-md hover:bg-teal-600 active:bg-teal-700 transition-colors font-medium"
+                className="px-8 py-3 bg-teal-500 text-white rounded-md hover:bg-teal-600 active:bg-teal-700 transition-colors font-medium cursor-pointer"
                 disabled={loading}
               >
                 Simpan
               </button>
               <button
                 onClick={handleCancel}
-                className="px-8 py-3 border border-teal-500 text-teal-500 rounded-md hover:bg-teal-50 transition-colors font-medium"
+                className="px-8 py-3 border border-teal-500 text-teal-500 rounded-md hover:bg-teal-50 transition-colors font-medium cursor-pointer"
                 disabled={loading}
               >
                 Batal

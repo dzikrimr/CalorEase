@@ -1,5 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
+import { Input } from "antd";
+import { CloseCircleOutlined } from "@ant-design/icons";
 import Sidebar from "../components/Sidebar";
 import ProductCard from "../components/ProductCard";
 import CategoryTabs from "../components/CategoryTabs";
@@ -20,6 +22,7 @@ const Marketplace: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState("All");
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
+  const [inputText, setInputText] = useState(""); // State for input value
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [totalPages, setTotalPages] = useState(1);
@@ -122,12 +125,8 @@ const Marketplace: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchProducts();
+    fetchProducts(); // Initial fetch with no query
   }, []);
-
-  useEffect(() => {
-    fetchProducts(searchTerm, 1);
-  }, [searchTerm]);
 
   // Filter products by category
   const filtered =
@@ -145,6 +144,7 @@ const Marketplace: React.FC = () => {
   useEffect(() => {
     setTotalResults(filtered.length);
     setTotalPages(Math.ceil(filtered.length / itemsPerPage));
+    setCurrentPage(1); // Reset to page 1 when category changes
   }, [filtered]);
 
   const handleCategoryChange = (category: string) => {
@@ -153,12 +153,22 @@ const Marketplace: React.FC = () => {
   };
 
   const handleSearchChange = (value: string) => {
-    setSearchTerm(value);
+    setInputText(value); // Update input text without triggering search
   };
 
   const handleSearchSubmit = () => {
+    console.log("Search button clicked with value:", inputText);
+    setSearchTerm(inputText);
     setCurrentPage(1);
-    fetchProducts(searchTerm, 1);
+    fetchProducts(inputText, 1);
+  };
+
+  const handleClearSearch = () => {
+    console.log("Clear search clicked");
+    setInputText("");
+    setSearchTerm("");
+    setCurrentPage(1);
+    fetchProducts("", 1); // Reset to initial product list
   };
 
   const handlePageChange = (page: number) => {
@@ -176,7 +186,7 @@ const Marketplace: React.FC = () => {
           categories={categories}
           activeCategory={activeCategory}
           onCategoryChange={handleCategoryChange}
-          searchValue={searchTerm}
+          searchValue={inputText}
           onSearchChange={handleSearchChange}
           onSearchSubmit={handleSearchSubmit}
           searchPlaceholder="Cari bahan makanan..."

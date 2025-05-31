@@ -30,6 +30,8 @@ const HomePage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [offset, setOffset] = useState<number>(0);
   const [totalPages, setTotalPages] = useState<number>(1);
+  const [userName, setUserName] = useState<string>('Pengguna');
+  const [recipeCount, setRecipeCount] = useState<number>(0);
   const recipesPerPage = 12;
 
   // Redirect to login if not authenticated
@@ -38,6 +40,53 @@ const HomePage: React.FC = () => {
       router.push('/login');
     }
   }, [user, authLoading, router]);
+
+  // Fetch user's name from Firestore if displayName is not set
+  useEffect(() => {
+    if (!user || authLoading) return;
+
+    if (user.displayName) {
+      setUserName(user.displayName);
+      return;
+    }
+
+    const userDocRef = doc(db, 'users', user.uid);
+    const unsubscribe = onSnapshot(
+      userDocRef,
+      (doc) => {
+        if (doc.exists()) {
+          const data = doc.data();
+          setUserName(data.nama || 'Pengguna');
+        } else {
+          setUserName('Pengguna');
+        }
+      },
+      (err) => {
+        console.error('Error fetching user name:', err);
+        setUserName('Pengguna');
+      }
+    );
+
+    return () => unsubscribe();
+  }, [user, authLoading]);
+
+  // Counting animation for recipe total
+  useEffect(() => {
+    const targetCount = 2850;
+    const duration = 2000; // 2 seconds
+    const increment = targetCount / (duration / 16); // ~60fps
+    let currentCount = 0;
+    const timer = setInterval(() => {
+      currentCount += increment;
+      if (currentCount >= targetCount) {
+        currentCount = targetCount;
+        clearInterval(timer);
+      }
+      setRecipeCount(Math.floor(currentCount));
+    }, 16);
+
+    return () => clearInterval(timer);
+  }, []);
 
   // Fetch recipes
   useEffect(() => {
@@ -153,19 +202,19 @@ const HomePage: React.FC = () => {
               style={{ top: '-40px', right: '-40px' }}
             ></div>
             <div className="relative text-white mb-2">Lebih Dari</div>
-            <div className="relative text-white text-4xl font-bold mb-2">2850+</div>
+            <div className="relative text-white text-4xl font-bold mb-2">{recipeCount}+</div>
             <div className="relative text-white">Resep Sehat</div>
           </div>
           <div className="absolute inset-0 flex flex-col justify-center px-8 z-20">
             <h1 className="text-white text-3xl font-bold mb-1 text-center">
-              Halo, {user.displayName || 'Pengguna'}
+              Hello, {userName}
             </h1>
             <p className="text-white text-xl mb-1 text-center">
-              Ayo buat pilihan makanan yang baik hari ini!
+              Let's make good food choices today!
             </p>
             <p className="text-white flex justify-center">
-              Tetap terjaga dengan{' '}
-              <span className="text-[#1FA98D] mx-1 text-center">nutrisi Anda</span>
+              Stay healthy wtih{' '}
+              <span className="text-[#1FA98D] mx-1 text-center">your nutrition</span>
               <span role="img" aria-label="sehat">
                 🥗
               </span>
@@ -173,9 +222,9 @@ const HomePage: React.FC = () => {
             <div className="flex justify-center w-full mt-4">
               <button
                 onClick={handleViewPreferences}
-                className="bg-teal-500 text-white px-4 py-2 rounded-full w-60 flex items-center justify-center"
+                className="bg-teal-500 text-white px-4 py-2 rounded-full w-60 flex items-center justify-center hover:bg-teal-600 cursor-pointer transition-all duration-200"
               >
-                Lihat Preferensi Anda
+                View Your Preferences
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="16"

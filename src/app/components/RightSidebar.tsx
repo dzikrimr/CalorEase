@@ -61,7 +61,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
             current={targetCalories}
             target={targetCalories}
             size={64}
-            label="Target Kalori"
+            label="Calorie Target"
           />
         </div>
         <div className="mb-6">
@@ -69,7 +69,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
             current={currentCalories}
             target={targetCalories}
             size={64}
-            label="Kalori Hari Ini"
+            label="Calorie's Today"
           />
         </div>
         <div className="mb-0">
@@ -77,7 +77,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
             current={Math.max(0, targetCalories - currentCalories)}
             target={targetCalories}
             size={64}
-            label="Kalori Tersisa"
+            label="Calorie Left"
           />
         </div>
         {(onFirstPage || onPrevPage || onNextPage || onLastPage) && (
@@ -114,7 +114,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
                 />
               </button>
               <div className="text-gray-600 text-sm">
-                {Math.floor(offset / recipesPerPage) + 1} dari {totalPages}
+                {Math.floor(offset / recipesPerPage) + 1} of {totalPages}
               </div>
               <button
                 onClick={onNextPage}

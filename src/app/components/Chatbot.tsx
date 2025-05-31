@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from "react";
 import {
   X,
   Send,
@@ -8,9 +8,9 @@ import {
   ChevronUp,
   MessageCircle,
   Move,
-} from 'lucide-react';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import { useChatbot } from '../context/ChatbotContext';
+} from "lucide-react";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import { useChatbot } from "../context/ChatbotContext";
 
 interface Ingredient {
   name: string;
@@ -44,7 +44,7 @@ export interface Recipe {
 interface Message {
   id: string;
   content: string;
-  sender: 'user' | 'bot';
+  sender: "user" | "bot";
   timestamp: Date;
 }
 
@@ -54,29 +54,35 @@ interface ChatbotProps {
   hasNotification?: boolean;
 }
 
-const Chatbot: React.FC<ChatbotProps> = ({ isOpen, onToggle, hasNotification = false }) => {
+const Chatbot: React.FC<ChatbotProps> = ({
+  isOpen,
+  onToggle,
+  hasNotification = false,
+}) => {
   const { recipe } = useChatbot();
   const getInitialMessage = (recipe: Recipe | null) => ({
-    id: '1',
+    id: "1",
     content: recipe
       ? `Halo! Saya AI Assistant Anda. Saya lihat anda sedang membuka resep ${recipe.title}. Tanyakan apa saja tentang resep ini atau lainnya!`
-      : 'Halo! Saya AI Assistant Anda. Saat ini anda sedang tidak membuka resep. Tanyakan apa saja atau buka halaman detail resep untuk informasi spesifik yang ingin ditanyakan!',
-    sender: 'bot' as const,
+      : "Halo! Saya AI Assistant Anda. Saat ini anda sedang tidak membuka resep. Tanyakan apa saja atau buka halaman detail resep untuk informasi spesifik yang ingin ditanyakan!",
+    sender: "bot" as const,
     timestamp: new Date(),
   });
 
-  const [messages, setMessages] = useState<Message[]>([getInitialMessage(recipe)]);
-  const [inputMessage, setInputMessage] = useState('');
+  const [messages, setMessages] = useState<Message[]>([
+    getInitialMessage(recipe),
+  ]);
+  const [inputMessage, setInputMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [quickActionsVisible, setQuickActionsVisible] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [dimensions, setDimensions] = useState({ width: 320, height: 500 });
+  const [dimensions, setDimensions] = useState({ width: 320, height: 600 });
   const [isResizing, setIsResizing] = useState(false);
   const [maxDimensions, setMaxDimensions] = useState({
     width: 600,
     height: 800,
   });
-  const defaultDimensions = { width: 320, height: 500 };
+  const defaultDimensions = { width: 320, height: 600 };
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatbotRef = useRef<HTMLDivElement>(null);
@@ -99,12 +105,12 @@ const Chatbot: React.FC<ChatbotProps> = ({ isOpen, onToggle, hasNotification = f
     };
 
     updateMaxDimensions();
-    window.addEventListener('resize', updateMaxDimensions);
-    return () => window.removeEventListener('resize', updateMaxDimensions);
+    window.addEventListener("resize", updateMaxDimensions);
+    return () => window.removeEventListener("resize", updateMaxDimensions);
   }, []);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   useEffect(() => {
@@ -114,12 +120,14 @@ const Chatbot: React.FC<ChatbotProps> = ({ isOpen, onToggle, hasNotification = f
   // Update messages when recipe changes, but preserve existing conversation
   useEffect(() => {
     setMessages((prev) => {
-      const hasWelcomeMessage = prev.some((msg) => msg.id === '1' && msg.sender === 'bot');
+      const hasWelcomeMessage = prev.some(
+        (msg) => msg.id === "1" && msg.sender === "bot"
+      );
       if (!hasWelcomeMessage) {
         return [getInitialMessage(recipe), ...prev];
       }
       return prev.map((msg) =>
-        msg.id === '1' && msg.sender === 'bot' ? getInitialMessage(recipe) : msg
+        msg.id === "1" && msg.sender === "bot" ? getInitialMessage(recipe) : msg
       );
     });
   }, [recipe]);
@@ -141,19 +149,19 @@ const Chatbot: React.FC<ChatbotProps> = ({ isOpen, onToggle, hasNotification = f
 
     const handleMouseUp = () => {
       setIsResizing(false);
-      document.body.style.cursor = 'default';
+      document.body.style.cursor = "default";
     };
 
     if (isResizing) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      document.body.style.cursor = 'nw-resize';
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+      document.body.style.cursor = "nw-resize";
     }
 
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.body.style.cursor = 'default';
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+      document.body.style.cursor = "default";
     };
   }, [isResizing, maxDimensions]);
 
@@ -164,7 +172,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ isOpen, onToggle, hasNotification = f
 
   const generateId = () => Math.random().toString(36).substr(2, 9);
 
-  const addMessage = (content: string, sender: 'user' | 'bot') => {
+  const addMessage = (content: string, sender: "user" | "bot") => {
     const newMessage: Message = {
       id: generateId(),
       content,
@@ -177,17 +185,19 @@ const Chatbot: React.FC<ChatbotProps> = ({ isOpen, onToggle, hasNotification = f
   const formatRecipeContext = (recipe: Recipe): string => {
     const ingredients = recipe.ingredients
       .map((ing) => `- ${ing.name}: ${ing.amount} ${ing.unit}`)
-      .join('\n');
+      .join("\n");
     const instructions = recipe.instructions
       .map((instr, idx) => `${idx + 1}. ${instr}`)
-      .join('\n');
+      .join("\n");
     const nutrition = `Calories: ${recipe.nutrition.calories} kcal, Protein: ${recipe.nutrition.protein}g, Fat: ${recipe.nutrition.fat}g, Carbohydrates: ${recipe.nutrition.carbohydrates}g`;
 
-    return `You are viewing a recipe titled "${recipe.title}". Here are the details:
-- Summary: ${recipe.summary.replace(/<[^>]*>?/gm, '')}
+    return `You are viewing a recipe titled "${
+      recipe.title
+    }". Here are the details:
+- Summary: ${recipe.summary.replace(/<[^>]*>?/gm, "")}
 - Cooking Time: ${recipe.cookingTime} minutes
 - Servings: ${recipe.servings}
-- Categories: ${recipe.categories.join(', ')}
+- Categories: ${recipe.categories.join(", ")}
 - Ingredients:\n${ingredients}
 - Instructions:\n${instructions}
 - Nutrition: ${nutrition}
@@ -195,89 +205,96 @@ Please answer questions related to this recipe or any other topic.`;
   };
 
   const processAIResponse = (text: string): string => {
-    text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    const lines = text.split('\n');
+    text = text.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+    const lines = text.split("\n");
     const processedLines = lines.map((line) => {
       if (/^\s*\*\s+/.test(line)) {
-        return line.replace(/^\s*\*\s+/, '- ');
+        return line.replace(/^\s*\*\s+/, "- ");
       }
       return line;
     });
-    return processedLines.join('\n');
+    return processedLines.join("\n");
   };
 
   const getGeminiResponse = async (userMessage: string): Promise<string> => {
     const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
     if (!apiKey) {
-      console.error('Gemini API key is missing. Please set NEXT_PUBLIC_GEMINI_API_KEY in your .env file.');
-      setError('Gemini API key is missing or invalid.');
-      return 'Maaf, saya tidak dapat merespons karena konfigurasi API tidak lengkap.';
+      console.error(
+        "Gemini API key is missing. Please set NEXT_PUBLIC_GEMINI_API_KEY in your .env file."
+      );
+      setError("Gemini API key is missing or invalid.");
+      return "Maaf, saya tidak dapat merespons karena konfigurasi API tidak lengkap.";
     }
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     try {
-      const languageInstruction = 'Make sure the answer language matches the user language.';
+      const languageInstruction =
+        "Make sure the answer language matches the user language.";
       const prompt = recipe
-        ? `${languageInstruction}\n\n${formatRecipeContext(recipe)}\n\nUser question: ${userMessage}`
+        ? `${languageInstruction}\n\n${formatRecipeContext(
+            recipe
+          )}\n\nUser question: ${userMessage}`
         : `${languageInstruction}\n\nUser question: ${userMessage}`;
 
       const result = await model.generateContent(prompt);
       let responseText = result.response.text();
-      console.log('Gemini API raw response:', responseText);
+      console.log("Gemini API raw response:", responseText);
 
       responseText = processAIResponse(responseText);
-      console.log('Processed response:', responseText);
+      console.log("Processed response:", responseText);
       return responseText;
     } catch (error: any) {
-      console.error('Error fetching Gemini response:', error);
-      if (error.message.includes('Quota')) {
-        setError('Batas kuota API gratis telah tercapai. Silakan coba lagi nanti.');
-        return 'Maaf, batas kuota API gratis telah tercapai. Silakan coba lagi nanti.';
+      console.error("Error fetching Gemini response:", error);
+      if (error.message.includes("Quota")) {
+        setError(
+          "Batas kuota API gratis telah tercapai. Silakan coba lagi nanti."
+        );
+        return "Maaf, batas kuota API gratis telah tercapai. Silakan coba lagi nanti.";
       }
-      setError('Gagal mendapatkan respons dari AI. Silakan coba lagi.');
-      return 'Maaf, terjadi kesalahan. Silakan coba lagi nanti.';
+      setError("Gagal mendapatkan respons dari AI. Silakan coba lagi.");
+      return "Maaf, terjadi kesalahan. Silakan coba lagi nanti.";
     }
   };
 
   const handleSendMessage = async () => {
     if (!inputMessage.trim()) return;
 
-    addMessage(inputMessage, 'user');
+    addMessage(inputMessage, "user");
     const userMsg = inputMessage;
-    setInputMessage('');
+    setInputMessage("");
     setError(null);
 
     setIsTyping(true);
     try {
       const botResponse = await getGeminiResponse(userMsg);
-      addMessage(botResponse, 'bot');
+      addMessage(botResponse, "bot");
     } catch (err) {
-      setError('Gagal mendapatkan respons dari AI. Coba lagi nanti.');
-      console.error('Error in handleSendMessage:', err);
+      setError("Gagal mendapatkan respons dari AI. Coba lagi nanti.");
+      console.error("Error in handleSendMessage:", err);
     } finally {
       setIsTyping(false);
     }
   };
 
   const handleQuickMessage = async (message: string) => {
-    addMessage(message, 'user');
+    addMessage(message, "user");
     setError(null);
 
     setIsTyping(true);
     try {
       const botResponse = await getGeminiResponse(message);
-      addMessage(botResponse, 'bot');
+      addMessage(botResponse, "bot");
     } catch (err) {
-      setError('Gagal mendapatkan respons dari AI. Coba lagi nanti.');
-      console.error('Error in handleQuickMessage:', err);
+      setError("Gagal mendapatkan respons dari AI. Coba lagi nanti.");
+      console.error("Error in handleQuickMessage:", err);
     } finally {
       setIsTyping(false);
     }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
     }
@@ -292,15 +309,15 @@ Please answer questions related to this recipe or any other topic.`;
         <div className="flex gap-1">
           <div
             className="w-2 h-2 bg-teal-500 rounded-full animate-bounce"
-            style={{ animationDelay: '0ms' }}
+            style={{ animationDelay: "0ms" }}
           ></div>
           <div
             className="w-2 h-2 bg-teal-500 rounded-full animate-bounce"
-            style={{ animationDelay: '150ms' }}
+            style={{ animationDelay: "150ms" }}
           ></div>
           <div
             className="w-2 h-2 bg-teal-500 rounded-full animate-bounce"
-            style={{ animationDelay: '300ms' }}
+            style={{ animationDelay: "300ms" }}
           ></div>
         </div>
       </div>
@@ -329,9 +346,9 @@ Please answer questions related to this recipe or any other topic.`;
           style={{
             width: `${dimensions.width}px`,
             height: `${dimensions.height}px`,
-            minWidth: '280px',
+            minWidth: "280px",
             maxWidth: `${maxDimensions.width}px`,
-            minHeight: '300px',
+            minHeight: "300px",
             maxHeight: `${maxDimensions.height}px`,
           }}
         >
@@ -381,19 +398,21 @@ Please answer questions related to this recipe or any other topic.`;
               <div
                 key={message.id}
                 className={`flex ${
-                  message.sender === 'user' ? 'justify-end items-center' : 'items-start gap-3'
+                  message.sender === "user"
+                    ? "justify-end items-center"
+                    : "items-start gap-3"
                 } animate-fadeIn`}
               >
-                {message.sender === 'bot' && (
+                {message.sender === "bot" && (
                   <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-teal-200 to-teal-300 rounded-full flex items-center justify-center text-sm">
                     🤖
                   </div>
                 )}
                 <div
                   className={`max-w-[80%] px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-line ${
-                    message.sender === 'user'
-                      ? 'bg-gradient-to-r from-teal-600 to-teal-500 text-white rounded-br-md'
-                      : 'bg-gradient-to-r from-teal-50 to-teal-100 text-teal-900 rounded-bl-md'
+                    message.sender === "user"
+                      ? "bg-gradient-to-r from-teal-600 to-teal-500 text-white rounded-br-md"
+                      : "bg-gradient-to-r from-teal-50 to-teal-100 text-teal-900 rounded-bl-md"
                   }`}
                 >
                   <div dangerouslySetInnerHTML={{ __html: message.content }} />
@@ -409,7 +428,9 @@ Please answer questions related to this recipe or any other topic.`;
               className="flex items-center justify-between px-6 py-3 cursor-pointer hover:bg-teal-100 hover:bg-opacity-50 transition-colors"
               onClick={() => setQuickActionsVisible(!quickActionsVisible)}
             >
-              <span className="text-sm font-medium text-teal-800">Aksi Cepat</span>
+              <span className="text-sm font-medium text-teal-800">
+                Aksi Cepat
+              </span>
               {quickActionsVisible ? (
                 <ChevronUp size={16} className="text-teal-600" />
               ) : (
@@ -418,24 +439,32 @@ Please answer questions related to this recipe or any other topic.`;
             </div>
             <div
               className={`px-6 pb-3 transition-all duration-300 overflow-hidden ${
-                quickActionsVisible ? 'max-h-20 opacity-100' : 'max-h-0 opacity-0'
+                quickActionsVisible
+                  ? "max-h-20 opacity-100"
+                  : "max-h-0 opacity-0"
               }`}
             >
               <div className="flex gap-2 flex-wrap">
                 <button
-                  onClick={() => handleQuickMessage('Apa saja bahan untuk resep ini?')}
+                  onClick={() =>
+                    handleQuickMessage("Apa saja bahan untuk resep ini?")
+                  }
                   className="px-3 py-2 bg-teal-100 hover:bg-gradient-to-r hover:from-teal-200 hover:to-teal-300 text-teal-800 rounded-full text-xs font-medium transition-all duration-200 hover:shadow-md transform hover:-translate-y-0.5"
                 >
                   🥕 Bahan
                 </button>
                 <button
-                  onClick={() => handleQuickMessage('Berapa kalori resep ini?')}
+                  onClick={() => handleQuickMessage("Berapa kalori resep ini?")}
                   className="px-3 py-2 bg-teal-100 hover:bg-gradient-to-r hover:from-teal-200 hover:to-teal-300 text-teal-800 rounded-full text-xs font-medium transition-all duration-200 hover:shadow-md transform hover:-translate-y-0.5"
                 >
                   🔥 Kalori
                 </button>
                 <button
-                  onClick={() => handleQuickMessage('Bagaimana langkah-langkah membuat resep ini?')}
+                  onClick={() =>
+                    handleQuickMessage(
+                      "Bagaimana langkah-langkah membuat resep ini?"
+                    )
+                  }
                   className="px-3 py-2 bg-teal-100 hover:bg-gradient-to-r hover:from-teal-200 hover:to-teal-300 text-teal-800 rounded-full text-xs font-medium transition-all duration-200 hover:shadow-md transform hover:-translate-y-0.5"
                 >
                   👨‍🍳 Langkah
@@ -457,7 +486,7 @@ Please answer questions related to this recipe or any other topic.`;
               <button
                 onClick={handleSendMessage}
                 disabled={!inputMessage.trim()}
-                className="m-1 w-10 h-10 bg-gradient-to-r from-teal-600 to-teal-500 hover:from-teal-700 hover:to-teal-600 disabled:from-gray-300 disabled:to-gray-400 text-white rounded Ded rounded-full flex items-center justify-center transition-all duration-200 hover:shadow-lg transform hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:transform-none"
+                className="m-1 w-10 h-10 bg-gradient-to-r from-teal-600 to-teal-500 hover:from-teal-700 hover:to-teal-600 disabled:from-gray-300 disabled:to-gray-400 text-white rounded-full flex items-center justify-center transition-all duration-200 hover:shadow-lg transform hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:transform-none"
               >
                 <Send size={16} />
               </button>
@@ -465,37 +494,6 @@ Please answer questions related to this recipe or any other topic.`;
           </div>
         </div>
       )}
-      <style jsx>{`
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-            transform: translateY(10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        @keyframes slideInUp {
-          from {
-            opacity: 0;
-            transform: translateY(20px) scale(0.95);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-          }
-        }
-
-        .animate-fadeIn {
-          animation: fadeIn 0.3s ease-out;
-        }
-
-        .animate-slideInUp {
-          animation: slideInUp 0.3s ease-out;
-        }
-      `}</style>
     </div>
   );
 };

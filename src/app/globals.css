@@ -23,11 +23,12 @@
   --font-sans: var(--font-nunito);
   --font-mono: var(--font-geist-mono);
   
-  /* Custom animations for chatbot */
+  /* Custom animations */
   --animate-slideInUp: slideInUp 0.3s ease-out;
   --animate-fadeIn: fadeIn 0.3s ease-out;
   --animate-bounce: bounce 1s infinite;
   --animate-pulse: pulse 2s infinite;
+  --animate-bounce-horizontal: bounce-horizontal 1s ease-in-out infinite;
 }
 
 /* @media (prefers-color-scheme: dark) {
@@ -43,13 +44,23 @@ body {
   font-family: var(--font-sans);
 }
 
+/* Ant Design Input styles */
+.ant-input {
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.ant-input:hover {
+  border-color: #1FA98D !important;
+  box-shadow: 0 0 0 2px rgba(31, 169, 141, 0.2) !important;
+}
+
 .ant-input:focus,
 .ant-input-focused {
   border-color: #1FA98D !important;
   box-shadow: 0 0 0 2px rgba(31, 169, 141, 0.2) !important;
 }
 
-/* Custom animations for chatbot */
+/* Custom animations */
 @keyframes slideInUp {
   from {
     opacity: 0;
@@ -90,6 +101,24 @@ body {
   }
 }
 
+@keyframes bounce-horizontal {
+  0%, 100% {
+    transform: translateX(0px);
+  }
+  50% {
+    transform: translateX(4px);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
 /* Utility classes */
 .animate-slideInUp {
   animation: var(--animate-slideInUp);
@@ -99,7 +128,6 @@ body {
   animation: var(--animate-fadeIn);
 }
 
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-20px); }
+.animate-bounce-horizontal {
+  animation: var(--animate-bounce-horizontal);
 }

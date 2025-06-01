@@ -14,6 +14,7 @@ interface CustomDropdownProps {
   name: string;
   className?: string;
   disabled?: boolean;
+  direction?: 'up' | 'down';
 }
 
 const CustomDropdown: React.FC<CustomDropdownProps> = ({ 
@@ -23,7 +24,8 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
   placeholder = "Pilih opsi", 
   name,
   className = "",
-  disabled = false
+  disabled = false,
+  direction = 'down'
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -77,29 +79,31 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
         type="button"
         onClick={toggleDropdown}
         disabled={disabled}
-        className={`w-full px-4 py-3 border rounded-md outline-none transition-colors flex justify-between items-center text-left ${
+        className={`w-full p-4 border-2 rounded-2xl text-base transition-all duration-300 outline-none ${
           disabled 
-            ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed' 
+            ? 'border-[var(--primary-200)] bg-[var(--primary-50)] text-[var(--primary-600)] cursor-not-allowed'
             : isOpen
-              ? 'border-teal-400 ring-1 ring-teal-400'
-              : 'border-gray-300 hover:border-teal-400 focus:ring-1 focus:ring-teal-400 focus:border-teal-400'
-        }`}
+              ? 'border-[var(--primary-500)] bg-white shadow-[0_0_0_4px_rgba(31,169,141,0.1)]'
+              : 'border-[var(--primary-200)] bg-[var(--primary-50)] text-[var(--primary-600)] hover:border-[var(--primary-500)] hover:bg-white hover:shadow-[0_0_0_4px_rgba(31,169,141,0.1)]'
+        } flex justify-between items-center text-left`}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
         aria-labelledby={`${name}-label`}
       >
-        <span className={selectedOption ? 'text-gray-800' : 'text-gray-500'}>
+        <span className={selectedOption ? 'text-[var(--primary-600)]' : 'text-[var(--primary-600)] opacity-60'}>
           {selectedOption ? selectedOption.label : placeholder}
         </span>
         <ChevronDown 
           className={`w-5 h-5 transition-transform duration-200 ${
-            disabled ? 'text-gray-300' : 'text-gray-400'
-          } ${isOpen ? 'rotate-180' : ''}`} 
+            disabled ? 'text-[var(--primary-600)] opacity-60' : 'text-[var(--primary-600)]'
+          } ${isOpen && direction === 'up' ? 'rotate-0' : isOpen ? 'rotate-180' : ''}`} 
         />
       </button>
       
       {isOpen && !disabled && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-teal-400 rounded-lg shadow-lg max-h-60 overflow-auto">
+        <div className={`absolute z-50 w-full bg-white border border-[var(--primary-500)] rounded-lg shadow-lg max-h-60 overflow-auto ${
+          direction === 'up' ? 'bottom-full mb-1' : 'top-full mt-1'
+        }`}>
           {options.map((option, index) => (
             <button
               key={option.value}
@@ -111,8 +115,8 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
                 index === options.length - 1 ? 'rounded-b-lg' : ''
               } ${
                 value === option.value 
-                  ? 'bg-teal-500 text-white font-medium hover:bg-teal-500' 
-                  : 'text-[#1A3C34]'
+                  ? 'bg-[var(--primary-500)] text-white font-medium hover:bg-[var(--primary-500)]' 
+                  : 'text-[var(--primary-600)]'
               }`}
               role="option"
               aria-selected={value === option.value}

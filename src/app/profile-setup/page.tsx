@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { db } from '../lib/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { useAuth } from '../context/AuthContext';
+import CustomDropdown from '../components/CustomDropdown';
 
 interface FormData {
   nama: string;
@@ -13,6 +14,11 @@ interface FormData {
   berat: number;
   jenisKelamin: 'pria' | 'wanita' | '';
   aktivitas: 'rendah' | 'sedang' | 'tinggi' | 'sangat_tinggi' | '';
+}
+
+interface DropdownOption {
+  value: string;
+  label: string;
 }
 
 const ProfileSetup: React.FC = () => {
@@ -29,6 +35,21 @@ const ProfileSetup: React.FC = () => {
   const [formLoading, setFormLoading] = useState(false);
   const [showResult, setShowResult] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Dropdown options
+  const jenisKelaminOptions: DropdownOption[] = [
+    { value: '', label: 'Pilih jenis kelamin' },
+    { value: 'pria', label: 'Pria' },
+    { value: 'wanita', label: 'Wanita' },
+  ];
+
+  const aktivitasOptions: DropdownOption[] = [
+    { value: '', label: 'Pilih tingkat aktivitas' },
+    { value: 'rendah', label: 'Rendah - Jarang berolahraga, kerja kantoran' },
+    { value: 'sedang', label: 'Sedang - Olahraga ringan 1-3x/minggu' },
+    { value: 'tinggi', label: 'Tinggi - Olahraga intensif 4-6x/minggu' },
+    { value: 'sangat_tinggi', label: 'Sangat Tinggi - Olahraga setiap hari atau 2x/hari' },
+  ];
 
   // Redirect to login if not authenticated
   React.useEffect(() => {
@@ -241,17 +262,15 @@ const ProfileSetup: React.FC = () => {
                     <label htmlFor="jenisKelamin" className="block mb-2 text-[var(--primary-700)] font-semibold text-base">
                       Jenis Kelamin
                     </label>
-                    <select
-                      id="jenisKelamin"
+                    <CustomDropdown
+                      name="jenisKelamin"
+                      options={jenisKelaminOptions}
                       value={jenisKelamin}
                       onChange={(e) => setJenisKelamin(e.target.value as 'pria' | 'wanita' | '')}
-                      required
-                      className="w-full p-4 border-2 border-[var(--primary-200)] rounded-2xl bg-[var(--primary-50)] text-base focus:border-[var(--primary-500)] focus:bg-white focus:shadow-[0_0_0_4px_rgba(31,169,141,0.1)] focus:-translate-y-0.5 focus:scale-[1.02] transition-all duration-300 outline-none placeholder-[var(--primary-600)]"
-                    >
-                      <option value="">Pilih jenis kelamin</option>
-                      <option value="pria">Pria</option>
-                      <option value="wanita">Wanita</option>
-                    </select>
+                      placeholder="Pilih jenis kelamin"
+                      className="w-full"
+                      direction="down"
+                    />
                   </div>
                 </div>
 
@@ -295,19 +314,15 @@ const ProfileSetup: React.FC = () => {
                   <label htmlFor="aktivitas" className="block mb-2 text-[var(--primary-700)] font-semibold text-base">
                     Tingkat Aktivitas
                   </label>
-                  <select
-                    id="aktivitas"
+                  <CustomDropdown
+                    name="aktivitas"
+                    options={aktivitasOptions}
                     value={aktivitas}
                     onChange={(e) => setAktivitas(e.target.value as 'rendah' | 'sedang' | 'tinggi' | 'sangat_tinggi' | '')}
-                    required
-                    className="w-full p-4 border-2 border-[var(--primary-200)] rounded-2xl bg-[var(--primary-50)] text-base focus:border-[var(--primary-500)] focus:bg-white focus:shadow-[0_0_0_4px_rgba(31,169,141,0.1)] focus:-translate-y-0.5 focus:scale-[1.02] transition-all duration-300 outline-none placeholder-[var(--primary-600)]"
-                  >
-                    <option value="">Pilih tingkat aktivitas</option>
-                    <option value="rendah">Rendah - Jarang berolahraga, kerja kantoran</option>
-                    <option value="sedang">Sedang - Olahraga ringan 1-3x/minggu</option>
-                    <option value="tinggi">Tinggi - Olahraga intensif 4-6x/minggu</option>
-                    <option value="sangat_tinggi">Sangat Tinggi - Olahraga setiap hari atau 2x/hari</option>
-                  </select>
+                    placeholder="Pilih tingkat aktivitas"
+                    className="w-full"
+                    direction="up"
+                  />
                 </div>
 
                 <button

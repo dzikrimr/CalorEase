@@ -130,7 +130,7 @@ const FavoritesPage: React.FC = () => {
         <div className="flex justify-between items-center text-xs text-gray-500">
           <span>Added: {new Date(recipe.dateAdded).toLocaleDateString()}</span>
           <button
-            className="text-teal-600 hover:text-teal-700 font-medium"
+            className="text-teal-600 hover:text-teal-700 font-medium cursor-pointer"
             onClick={() => router.push(`/recipe-detail/${recipe.recipeId}`)} // Use recipeId instead of id
           >
             View Recipe

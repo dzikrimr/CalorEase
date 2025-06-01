@@ -486,13 +486,13 @@ const ProfilePage: React.FC = () => {
             <div className="flex gap-4 mt-20">
               <button
                 onClick={handleSave}
-                className="px-8 py-3 bg-teal-500 text-white rounded-md hover:bg-teal-600 transition-colors font-medium"
+                className="px-8 py-3 bg-teal-500 text-white rounded-md hover:bg-teal-600 transition-colors font-medium cursor-pointer"
               >
                 Simpan
               </button>
               <button
                 onClick={handleCancel}
-                className="px-8 py-3 border border-teal-500 text-teal-500 rounded-md hover:bg-teal-50 transition-colors font-medium"
+                className="px-8 py-3 border border-teal-500 text-teal-500 rounded-md hover:bg-teal-50 transition-colors font-medium cursor-pointer"
               >
                 Batal
               </button>

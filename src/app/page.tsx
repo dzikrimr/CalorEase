@@ -22,7 +22,7 @@ const HomePage: React.FC = () => {
             </p>
             <div className="flex space-x-4">
               <Link href="/dashboard">
-                <button className="bg-gradient-to-r from-[#1FA98D] to-[#26C6AA] text-white px-8 py-3 rounded-full text-lg font-semibold hover:shadow-xl hover:-translate-y-0.5 hover:scale-[1.02] transition-all duration-300 ease-[cubic-bezier(0.175,0.885,0.32,1.275)] relative overflow-hidden group">
+                <button className="bg-gradient-to-r from-[#1FA98D] to-[#26C6AA] text-white px-8 py-3 rounded-full text-lg font-semibold hover:shadow-xl hover:-translate-y-0.5 hover:scale-[1.02] transition-all duration-300 ease-[cubic-bezier(0.175,0.885,0.32,1.275)] relative overflow-hidden group cursor-pointer">
                   <span className="relative z-10">Try Now for Free</span>
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[rgba(255,255,255,0.3)] to-transparent -translate-x-full group-hover:translate-x-full transition-all duration-600"></div>
                 </button>

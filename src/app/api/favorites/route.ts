@@ -37,8 +37,8 @@ export async function POST(request: Request) {
     if (existingIndex === -1) {
       // Add to favorites
       const favoriteRecipe: Favorite = {
-        id: Date.now().toString(), // Simple ID generation
         ...recipe,
+        id: Date.now().toString(), // Simple ID generation
         dateAdded: new Date().toISOString(),
       };
       

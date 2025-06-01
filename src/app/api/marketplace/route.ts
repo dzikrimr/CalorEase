@@ -1,18 +1,24 @@
-import { NextResponse } from "next/server";
+import { NextResponse } from 'next/server';
+
+interface ShoppingResult {
+  title: string;
+  // Add other relevant properties if known
+  [key: string]: unknown;
+}
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const query = searchParams.get("query") || "white rice, egg, fresh meat, fresh fish, fresh vegetables, fresh fruit, cooking oil, sugar, salt, flour, milk, butter";
-  const page = searchParams.get("page") || "1";
-  const limit = searchParams.get("limit") || "100"; // Fetch a large batch
+  const query = searchParams.get('query') || 'white rice, egg, fresh meat, fresh fish, fresh vegetables, fresh fruit, cooking oil, sugar, salt, flour, milk, butter';
+  const page = searchParams.get('page') || '1';
+  const limit = searchParams.get('limit') || '100'; // Fetch a large batch
 
   try {
     const apiKey = process.env.SERPAPI_KEY;
     if (!apiKey) {
-      throw new Error("SERPAPI_KEY is not set in environment variables");
+      throw new Error('SERPAPI_KEY is not set in environment variables');
     }
 
-    const foodKeywords = "fresh produce edible grocery";
+    const foodKeywords = 'fresh produce edible grocery';
     const finalQuery = query ? `${query} ${foodKeywords}` : foodKeywords;
     const start = (parseInt(page) - 1) * parseInt(limit);
 
@@ -22,7 +28,7 @@ export async function GET(request: Request) {
       )}&tbm=shop&hl=id&gl=id&num=${limit}&start=${start}&api_key=${apiKey}`,
       {
         headers: {
-          Accept: "application/json",
+          Accept: 'application/json',
         },
       }
     );
@@ -31,9 +37,9 @@ export async function GET(request: Request) {
       throw new Error(`API request failed with status ${response.status}`);
     }
 
-    const data = await response.json();
+    const data: { shopping_results?: ShoppingResult[]; search_metadata?: { total_results?: number }; pagination?: { total_results?: number } } = await response.json();
 
-    console.log("SerpAPI Raw Response:", {
+    console.log('SerpAPI Raw Response:', {
       status: response.status,
       shopping_results_length: data.shopping_results?.length,
       total_results: data.search_metadata?.total_results || data.pagination?.total_results,
@@ -42,33 +48,33 @@ export async function GET(request: Request) {
       start,
     });
 
-    const shoppingResults = (data.shopping_results || []).filter((item: any) => {
-      const title = item.title?.toLowerCase() || "";
+    const shoppingResults = (data.shopping_results || []).filter((item: ShoppingResult) => {
+      const title = item.title?.toLowerCase() || '';
       return (
-        !title.includes("seasoning mix") &&
-        !title.includes("spice blend") &&
-        !title.includes("extract") &&
-        (title.includes("fresh") ||
-          title.includes("raw") ||
-          title.includes("vegetable") ||
-          title.includes("fruit") ||
-          title.includes("meat") ||
-          title.includes("fish") ||
-          title.includes("rice") ||
-          title.includes("egg") ||
-          title.includes("oil") ||
-          title.includes("sugar") ||
-          title.includes("salt") ||
-          title.includes("flour") ||
-          title.includes("milk") ||
-          title.includes("butter") ||
-          !title.includes("seasoning"))
+        !title.includes('seasoning mix') &&
+        !title.includes('spice blend') &&
+        !title.includes('extract') &&
+        (title.includes('fresh') ||
+          title.includes('raw') ||
+          title.includes('vegetable') ||
+          title.includes('fruit') ||
+          title.includes('meat') ||
+          title.includes('fish') ||
+          title.includes('rice') ||
+          title.includes('egg') ||
+          title.includes('oil') ||
+          title.includes('sugar') ||
+          title.includes('salt') ||
+          title.includes('flour') ||
+          title.includes('milk') ||
+          title.includes('butter') ||
+          !title.includes('seasoning'))
       );
     });
 
-    console.log("Filtered Results:", {
+    console.log('Filtered Results:', {
       filtered_length: shoppingResults.length,
-      filtered_titles: shoppingResults.map((item: any) => item.title),
+      filtered_titles: shoppingResults.map((item: ShoppingResult) => item.title),
     });
 
     const resultsPerPage = shoppingResults.length;
@@ -84,12 +90,13 @@ export async function GET(request: Request) {
       shopping_results: shoppingResults,
       pagination,
     });
-  } catch (error) {
-    console.error("Error fetching from SerpAPI:", error);
+  } catch (error: unknown) {
+    console.error('Error fetching from SerpAPI:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
       {
-        error: "Failed to fetch products",
-        details: error instanceof Error ? error.message : String(error),
+        error: 'Failed to fetch products',
+        details: errorMessage,
       },
       { status: 500 }
     );

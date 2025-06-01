@@ -134,6 +134,24 @@ const ProfilePage: React.FC = () => {
     setTempTotalCalories(0);
   };
 
+  const calculateBMR = (gender: 'pria' | 'wanita', weight: number, height: number, age: number): number => {
+    if (gender === 'pria') {
+      return 88.362 + (13.397 * weight) + (4.799 * height) - (5.677 * age);
+    } else {
+      return 447.593 + (9.247 * weight) + (3.098 * height) - (4.330 * age);
+    }
+  };
+
+  const calculateDailyCalories = (bmr: number, activityLevel: 'rendah' | 'sedang' | 'tinggi' | 'sangat_tinggi'): number => {
+    const multipliers = {
+      'rendah': 1.2,
+      'sedang': 1.375,
+      'tinggi': 1.55,
+      'sangat_tinggi': 1.725,
+    };
+    return Math.round(bmr * multipliers[activityLevel]);
+  };
+
   const handleSave = async () => {
     setError(null);
     setSuccess(null);
@@ -158,6 +176,13 @@ const ProfilePage: React.FC = () => {
     }
 
     try {
+      // Calculate BMR and daily calories
+      const age = parseInt(profileData.age) || 0;
+      const weight = parseFloat(profileData.weight) || 0;
+      const height = parseInt(profileData.height) || 0;
+      const calculatedBMR = calculateBMR(profileData.gender as 'pria' | 'wanita', weight, height, age);
+      const dailyCalories = calculateDailyCalories(calculatedBMR, profileData.activityLevel as 'rendah' | 'sedang' | 'tinggi' | 'sangat_tinggi');
+
       const userDocRef = doc(db, 'users', user.uid);
       const dailyIntakeRef = collection(db, `users/${user.uid}/dailyIntake`);
 
@@ -178,21 +203,23 @@ const ProfilePage: React.FC = () => {
       );
       await Promise.all(addPromises);
 
-      // Update user document with profile data and total calories
+      // Update user document with profile data, total calories, BMR, and daily calories
       const userData = {
         nama: profileData.name,
-        umur: parseInt(profileData.age) || 0,
-        berat: parseFloat(profileData.weight) || 0,
-        tinggi: parseInt(profileData.height) || 0,
+        umur: age,
+        berat: weight,
+        tinggi: height,
         jenisKelamin: profileData.gender,
         aktivitas: profileData.activityLevel,
         currentCalories: tempTotalCalories,
+        bmr: Math.round(calculatedBMR),
+        dailyCalories: dailyCalories,
         updatedAt: new Date().toISOString(),
       };
 
       await setDoc(userDocRef, userData, { merge: true });
       setRecipes(tempRecipes);
-      setSuccess('Data profil dan konsumsi berhasil disimpan!');
+      setSuccess(`Data profil dan konsumsi berhasil disimpan! Kebutuhan kalori harian Anda: ${dailyCalories.toLocaleString()} kalori`);
     } catch (err: any) {
       setError('Gagal menyimpan data: ' + (err.message || 'Terjadi kesalahan.'));
       console.error('Save error:', err);

@@ -4,9 +4,10 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { auth } from '../lib/firebase';
+import { auth, db } from '../lib/firebase';
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { useAuth } from '../context/AuthContext';
+import { doc, getDoc } from 'firebase/firestore';
 
 const LoginPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -17,10 +18,19 @@ const LoginPage: React.FC = () => {
   const router = useRouter();
   const { user, loading } = useAuth();
 
-  // Redirect to dashboard if already logged in
+  // Redirect to dashboard or profile setup if already logged in
   useEffect(() => {
     if (!loading && user) {
-      router.push('/dashboard');
+      const checkUserProfile = async () => {
+        const userDocRef = doc(db, 'users', user.uid);
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists()) {
+          router.push('/dashboard');
+        } else {
+          router.push('/profile-setup');
+        }
+      };
+      checkUserProfile();
     }
   }, [user, loading, router]);
 
@@ -50,8 +60,20 @@ const LoginPage: React.FC = () => {
     const provider = new GoogleAuthProvider();
 
     try {
-      await signInWithPopup(auth, provider);
-      router.push('/dashboard');
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+
+      // Check if user profile exists in Firestore
+      const userDocRef = doc(db, 'users', user.uid);
+      const userDoc = await getDoc(userDocRef);
+
+      if (userDoc.exists()) {
+        // User profile exists, redirect to dashboard
+        router.push('/dashboard');
+      } else {
+        // User profile does not exist, redirect to profile setup
+        router.push('/profile-setup');
+      }
     } catch (err: any) {
       if (err.code === 'auth/invalid-credential') {
         setError('Email atau password salah');
